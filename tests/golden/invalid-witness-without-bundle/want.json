@@ -1,0 +1,7 @@
+{
+  "valid": false,
+  "level": "high-assurance",
+  "failureCodes": [
+    "transparency_verification_failed"
+  ]
+}

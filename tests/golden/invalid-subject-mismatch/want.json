@@ -1,0 +1,7 @@
+{
+  "valid": false,
+  "level": "evidence-grade",
+  "failureCodes": [
+    "subject_digest_mismatch"
+  ]
+}

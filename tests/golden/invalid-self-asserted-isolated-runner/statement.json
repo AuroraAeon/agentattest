@@ -1,0 +1,105 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "patch.diff",
+      "digest": {
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "repo-tree",
+      "digest": {
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  ],
+  "predicateType": "https://agentattest.dev/predicate/v0",
+  "predicate": {
+    "predicateVersion": "v0",
+    "runId": "run_01HTYJ7B4A3H8M0S8P7M2N9Q",
+    "verificationLevel": "high-assurance",
+    "repo": {
+      "url": "https://github.com/example/agentattest",
+      "baseCommit": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "agent": {
+      "name": "example-agent",
+      "version": "1.0.0",
+      "invocationKind": "ci-step",
+      "declaredIdentity": "sigstore:github:example-agent"
+    },
+    "environment": {
+      "executionType": "isolated-runner",
+      "builder": {
+        "id": "untrusted-isolated-runner",
+        "type": "isolated-runner",
+        "workflowRef": "isolated-workflow-prod",
+        "runnerClass": "isolated"
+      },
+      "witnesses": [
+        {
+          "id": "rekor-bundle-1",
+          "type": "transparency-log",
+          "digest": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          "uri": "oci://sigstore.example/agentattest/rekor-bundle"
+        }
+      ]
+    },
+    "runtime": {
+      "traceFormat": "openinference-otel-json",
+      "traceIds": [
+        "4bf92f3577b34da6a3ce929d0e0e4736"
+      ]
+    },
+    "humanApproval": {
+      "state": "approved-before-merge",
+      "reviewerRefs": [
+        "github:user:maintainerA"
+      ]
+    },
+    "privacy": {
+      "redactionPolicy": "default-minimal-v0",
+      "rawPrompt": {
+        "stored": false,
+        "visibility": "none"
+      },
+      "rawToolOutputs": {
+        "stored": false,
+        "visibility": "none"
+      },
+      "publicTransparencyLog": {
+        "allowed": true,
+        "includesRawContent": false
+      }
+    },
+    "timestamps": {
+      "startedAt": "2026-04-27T09:12:31Z",
+      "finishedAt": "2026-04-27T09:16:42Z"
+    },
+    "evidence": [
+      {
+        "type": "trace",
+        "uri": "artifact://agentattest/traces/trace.otel.json",
+        "digest": {
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "mediaType": "application/json",
+        "storage": "artifact-store",
+        "visibility": "team"
+      },
+      {
+        "type": "approval",
+        "uri": "artifact://agentattest/approvals/pr-123.review.json",
+        "digest": {
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "mediaType": "application/json",
+        "storage": "artifact-store",
+        "visibility": "team"
+      }
+    ]
+  }
+}

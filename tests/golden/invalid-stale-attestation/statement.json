@@ -1,0 +1,76 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "patch.diff",
+      "digest": {
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "repo-tree",
+      "digest": {
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  ],
+  "predicateType": "https://agentattest.dev/predicate/v0",
+  "predicate": {
+    "predicateVersion": "v0",
+    "runId": "run_01HTYJ7B4A3H8M0S8P7M2N9Q",
+    "verificationLevel": "policy-grade",
+    "repo": {
+      "url": "https://github.com/example/agentattest",
+      "baseCommit": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "agent": {
+      "name": "example-agent",
+      "version": "1.0.0",
+      "invocationKind": "ci-step",
+      "declaredIdentity": "sigstore:github:example-agent"
+    },
+    "environment": {
+      "executionType": "github-actions",
+      "builder": {
+        "id": "https://github.com/example/agentattest/.github/workflows/agentattest.yml@refs/heads/main",
+        "type": "github-actions-workflow",
+        "workflowRef": "https://github.com/example/agentattest/.github/workflows/agentattest.yml@refs/heads/main",
+        "runnerClass": "github-hosted"
+      }
+    },
+    "humanApproval": {
+      "state": "approved-after-generation"
+    },
+    "privacy": {
+      "redactionPolicy": "default-minimal-v0",
+      "rawPrompt": {
+        "stored": false,
+        "visibility": "none"
+      },
+      "rawToolOutputs": {
+        "stored": false,
+        "visibility": "none"
+      },
+      "publicTransparencyLog": {
+        "allowed": true,
+        "includesRawContent": false
+      }
+    },
+    "timestamps": {
+      "startedAt": "2026-04-20T09:12:31Z",
+      "finishedAt": "2026-04-20T09:16:42Z"
+    },
+    "evidence": [
+      {
+        "type": "tool-summary",
+        "uri": "artifact://agentattest/evidence/policy.summary.json",
+        "digest": {
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "mediaType": "application/json",
+        "storage": "artifact-store",
+        "visibility": "team"
+      }
+    ]
+  }
+}

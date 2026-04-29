@@ -1,0 +1,7 @@
+{
+  "valid": false,
+  "level": "high-assurance",
+  "failureCodes": [
+    "missing_evidence"
+  ]
+}

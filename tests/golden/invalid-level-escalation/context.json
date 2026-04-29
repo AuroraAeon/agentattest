@@ -1,0 +1,16 @@
+{
+  "repoUrl": "https://github.com/example/agentattest",
+  "baseCommit": "0123456789abcdef0123456789abcdef01234567",
+  "requiredLevel": "policy-grade",
+  "subjects": [
+    {
+      "name": "patch.diff",
+      "algorithm": "sha256",
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "verifiedSigner": "sigstore:ci:example-agent",
+  "verifiedBuilderId": "ci-builder-1",
+  "verifiedWorkflowRef": "ci-workflow-main",
+  "verifiedIssuer": "https://issuer.example/ci"
+}

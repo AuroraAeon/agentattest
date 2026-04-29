@@ -1,0 +1,30 @@
+{
+  "statement": {
+    "_type": "https://in-toto.io/Statement/v1",
+    "subject": [
+      {
+        "name": "patch.diff",
+        "digest": {
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      }
+    ],
+    "predicateType": "https://agentattest.dev/predicate/v0",
+    "predicate": {
+      "predicateVersion": "v1"
+    }
+  },
+  "context": {
+    "subjects": [
+      {
+        "name": "patch.diff",
+        "algorithm": "sha256",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ]
+  },
+  "failureCodes": [
+    "unsupported_predicate_version",
+    "subject_digest_mismatch"
+  ]
+}

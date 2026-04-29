@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentattest.dev/schemas/golden-context-v0.schema.json",
+  "title": "agentattest Golden Verifier Context v0",
+  "description": "Schema for out-of-band verifier context used by golden fixtures and default policy tests. These fields are not trusted from the predicate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "repoUrl",
+    "baseCommit",
+    "requiredLevel",
+    "subjects"
+  ],
+  "properties": {
+    "repoUrl": {
+      "$ref": "#/$defs/repoHttpUri"
+    },
+    "baseCommit": {
+      "type": "string",
+      "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"
+    },
+    "requiredLevel": {
+      "type": "string",
+      "enum": [
+        "evidence-grade",
+        "policy-grade",
+        "high-assurance"
+      ]
+    },
+    "subjects": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/subject"
+      }
+    },
+    "verifiedSigner": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "verifiedBuilderId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "verifiedWorkflowRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "verifiedIssuer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "verifiedApproval": {
+      "type": "boolean"
+    },
+    "verifiedApprovalDigest": {
+      "$ref": "#/$defs/digest"
+    },
+    "verifiedWitnesses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/verifiedWitness"
+      }
+    },
+    "allowedIsolatedRunners": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "allowSelfHostedRunners": {
+      "type": "boolean"
+    },
+    "expectedPullRequestNumber": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "expectedRunId": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "freshnessWindowSeconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "now": {
+      "$ref": "#/$defs/rfc3339Utc"
+    }
+  },
+  "$defs": {
+    "repoHttpUri": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^https?://[^\\s/@:]+(?::[0-9]+)?(?:/[^\\s]*)?$"
+    },
+    "rfc3339Utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "algorithm",
+        "digest"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "verifiedWitness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "digest"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "transparency-log",
+            "timestamp-authority"
+          ]
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}
