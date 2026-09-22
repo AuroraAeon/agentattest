@@ -360,9 +360,10 @@ agentattest/
 ├── internal/
 │   ├── app/         orchestration   init · digest · predicate · verify
 │   ├── gitbind/     deterministic   repo URL · base/head · patch sha256 · file sha256
-│   ├── predicate/   v0 predicate    build map + StatementFor() helper
+│   ├── predicate/   v0/v1 predicate  Create/CreateV1 + StatementFor()/StatementForV1()
 │   ├── statement/   in-toto v1      parse / new / typed Document
 │   ├── verify/      pipeline        phase01..05, OrderFailureCodes, golden_test, testdata
+│   ├── signing/     DSSE + X.509    Sign/Verify envelope → verified signer/builder/issuer context
 │   ├── policy/      Rego adapter    wraps open-policy-agent/opa
 │   ├── cache/       SQLite          refs · digests · timestamps  (no pass/fail)
 │   └── contracts/   path locator    walks up to find schema/CUE/policy/context
@@ -422,7 +423,7 @@ Tracked in [`TASKS.md`](TASKS.md) with deterministic acceptance criteria — *"n
 | Milestone | Scope | Status |
 |---|---|---|
 | **v0 foundation** | Skeleton · predicate types · git binding · cache · in-toto assembly · Rego policy · golden harness · privacy gate | **shipped** — 33 golden fixtures pass |
-| **v0 signing** | `internal/signing`: DSSE envelope + X.509 identity → verified verifier context | **shipped (envelope + identity)**; Fulcio/Rekor root + bundle path pending |
+| **v0 signing** | `internal/signing`: DSSE envelope + X.509 identity + trust-root chain verification → verified verifier context | **shipped (envelope + identity + chain)**; Rekor inclusion-proof + Sigstore/`gh attestation` bundle ingestion pending |
 | **v1 contract** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent` — binds the 2026 harness plane | **shipped in this upgrade** — 8 new golden fixtures pass |
 | **v0.1 integration** | GitHub Action · attestation verification · PR summary · harness capture SDK · registry | planned |
 

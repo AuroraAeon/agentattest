@@ -29,8 +29,10 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
@@ -188,13 +190,17 @@ func (v *certVerifier) Verify(_ context.Context, data, sig []byte) error {
 // Sigstore keyless identity model: a URI SAN (workload identity, e.g. a GitHub
 // Actions workflow) also fills builder/workflow; otherwise an email or DNS SAN;
 // the Fulcio OIDC extension supplies the issuer.
-func identityFromCert(cert *x509.Certificate) VerifiedContext {
-	vc := VerifiedContext{}
+func fulcioIssuer(cert *x509.Certificate) string {
 	for _, ext := range cert.Extensions {
 		if ext.Id.String() == fulcioIssuerOID {
-			vc.VerifiedIssuer = strings.TrimSpace(string(ext.Value))
+			return strings.TrimSpace(string(ext.Value))
 		}
 	}
+	return ""
+}
+
+func identityFromCert(cert *x509.Certificate) VerifiedContext {
+	vc := VerifiedContext{VerifiedIssuer: fulcioIssuer(cert)}
 	switch {
 	case len(cert.URIs) > 0:
 		vc.VerifiedSigner = cert.URIs[0].String()
@@ -214,4 +220,82 @@ func identityFromCert(cert *x509.Certificate) VerifiedContext {
 
 func isGitHubWorkflowRef(s string) bool {
 	return strings.HasPrefix(s, "https://github.com/") && strings.Contains(s, "/.github/workflows/")
+}
+
+// TrustRoot configures which certificate authorities and OIDC issuers are
+// accepted as verified signer identities. For the public-good Sigstore instance
+// the roots are the Fulcio root CAs; for a private instance or tests they are
+// the operator's own roots. AllowedIssuers, when non-empty, constrains the
+// Fulcio OIDC issuer the leaf certificate must carry.
+type TrustRoot struct {
+	Roots          []*x509.Certificate
+	AllowedIssuers []string
+}
+
+// VerifyWithTrustRoot verifies that the envelope's leaf certificate chains to a
+// trusted root (and, if configured, carries an allowed OIDC issuer), then
+// verifies the DSSE signature with that leaf and returns the verified identity.
+// It fails closed on a broken chain, an untrusted root, a disallowed issuer, or
+// a signature mismatch.
+func VerifyWithTrustRoot(ctx context.Context, env *dsse.Envelope, leaf *x509.Certificate, intermediates []*x509.Certificate, trust TrustRoot) (VerifiedContext, error) {
+	if env == nil {
+		return VerifiedContext{}, errors.New("signing: nil envelope")
+	}
+	if leaf == nil {
+		return VerifiedContext{}, errors.New("signing: nil leaf certificate")
+	}
+	if len(trust.Roots) == 0 {
+		return VerifiedContext{}, errors.New("signing: empty trust root")
+	}
+
+	roots := x509.NewCertPool()
+	for _, r := range trust.Roots {
+		roots.AddCert(r)
+	}
+	interPool := x509.NewCertPool()
+	for _, c := range intermediates {
+		interPool.AddCert(c)
+	}
+	if _, err := leaf.Verify(x509.VerifyOptions{
+		Roots:         roots,
+		Intermediates: interPool,
+		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageCodeSigning},
+	}); err != nil {
+		return VerifiedContext{}, fmt.Errorf("signing: certificate chain verification failed: %w", err)
+	}
+
+	if len(trust.AllowedIssuers) > 0 {
+		issuer := fulcioIssuer(leaf)
+		if issuer == "" || !slices.Contains(trust.AllowedIssuers, issuer) {
+			return VerifiedContext{}, fmt.Errorf("signing: issuer %q is not in the trust root allowlist", issuer)
+		}
+	}
+
+	return Verify(ctx, env, []*x509.Certificate{leaf})
+}
+
+// ParseCertificates decodes PEM-encoded certificates — the form cosign and
+// `gh attestation` expose the signing certificate chain in.
+func ParseCertificates(pemBytes []byte) ([]*x509.Certificate, error) {
+	var certs []*x509.Certificate
+	rest := pemBytes
+	for {
+		var block *pem.Block
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		if block.Type != "CERTIFICATE" {
+			continue
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("signing: parse certificate: %w", err)
+		}
+		certs = append(certs, cert)
+	}
+	if len(certs) == 0 {
+		return nil, errors.New("signing: no certificates found in PEM input")
+	}
+	return certs, nil
 }

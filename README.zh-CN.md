@@ -360,9 +360,10 @@ agentattest/
 ├── internal/
 │   ├── app/         编排            init · digest · predicate · verify
 │   ├── gitbind/     确定性绑定      仓库 URL · base/head · patch sha256 · 文件 sha256
-│   ├── predicate/   v0 谓词         构建 map + StatementFor() 辅助函数
+│   ├── predicate/   v0/v1 谓词       Create/CreateV1 + StatementFor()/StatementForV1()
 │   ├── statement/   in-toto v1      parse / new / 类型化 Document
 │   ├── verify/      流水线          phase01..05、OrderFailureCodes、golden_test、testdata
+│   ├── signing/     DSSE + X.509    Sign/Verify 信封 → 已验证的签名者/builder/issuer 上下文
 │   ├── policy/      Rego 适配器     封装 open-policy-agent/opa
 │   ├── cache/       SQLite          refs · digests · timestamps（不存通过/失败结果）
 │   └── contracts/   路径定位        向上查找 schema/CUE/policy/context
@@ -422,7 +423,7 @@ agentattest/
 | 里程碑 | 范围 | 状态 |
 |---|---|---|
 | **v0 基础** | 骨架 · 谓词类型 · git 绑定 · 缓存 · in-toto 组装 · Rego 策略 · Golden 测试套 · 隐私门 | **已交付**——33 个 golden fixture 通过 |
-| **v0 签名** | `internal/signing`：DSSE 信封 + X.509 身份 → 已验证的验证器上下文 | **已交付（信封 + 身份层）**；Fulcio/Rekor 根与 bundle 路径待补 |
+| **v0 签名** | `internal/signing`：DSSE 信封 + X.509 身份 + 信任根链校验 → 已验证的验证器上下文 | **已交付（信封 + 身份 + 链校验）**；Rekor 包含证明 + Sigstore/`gh attestation` bundle 摄取待补 |
 | **v1 契约** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent`——绑定 2026 harness 层面 | **本次升级已交付**——8 个新 golden fixture 通过 |
 | **v0.1 集成** | GitHub Action · attestation 验证 · PR 摘要 · harness 采集 SDK · registry | 计划中 |
 

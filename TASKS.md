@@ -67,9 +67,9 @@ Acceptance criteria:
 - Platform-agent signers (e.g. GitHub Copilot coding agent bot identity + issuer) are recognized as
   a first-class verified-signer category for the `platform-agent` builder type.
 
-Shipped in `internal/signing`: `Sign` wraps a statement payload in a DSSE envelope via a caller-supplied `crypto.Signer` (secure-systems-lab/go-securesystemslib — no custom crypto); `Verify` verifies the envelope against trusted signer certificates, rejects tampering / missing signatures / wrong keys, and extracts `verifiedSigner` / `verifiedBuilderId` / `verifiedWorkflowRef` / `verifiedIssuer` from the certificate SAN and the Fulcio OIDC extension (`1.3.6.1.4.1.57264.1.1`). Offline tests cover the round trip, identity extraction, and fail-closed cases, plus an end-to-end signed policy-grade v1 statement that verifies.
+Shipped in `internal/signing`: `Sign` wraps a statement payload in a DSSE envelope via a caller-supplied `crypto.Signer` (secure-systems-lab/go-securesystemslib — no custom crypto); `Verify` verifies the envelope against trusted signer certificates, rejects tampering / missing signatures / wrong keys, and extracts `verifiedSigner` / `verifiedBuilderId` / `verifiedWorkflowRef` / `verifiedIssuer` from the certificate SAN and the Fulcio OIDC extension (`1.3.6.1.4.1.57264.1.1`). `VerifyWithTrustRoot` additionally verifies the leaf certificate chains to a configurable trust root (the Fulcio root CAs) with an optional OIDC-issuer allowlist, and `ParseCertificates` ingests the PEM certificate chain cosign / `gh attestation` expose. Offline tests cover the round trip, identity extraction, trust-root chain verification (accept / untrusted-root / disallowed-issuer / expired-leaf), and fail-closed cases, plus an end-to-end signed policy-grade v1 statement that verifies.
 
-Remaining (next layer): full chain-to-Fulcio-root and Rekor inclusion-proof verification, and sourcing the trusted leaf certificates from Sigstore/cosign bundles and `gh attestation` output.
+Remaining (next layer): Rekor inclusion-proof verification, and sourcing the trust root (via Sigstore TUF) and the leaf certificate from real Sigstore/cosign bundles and `gh attestation` output.
 
 ### 8. Default Rego policy — DONE
 `policies/default.rego`: repo/base/subject-set equality, required level, verified identity, level
