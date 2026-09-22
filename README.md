@@ -9,7 +9,7 @@
 [![status](https://img.shields.io/badge/status-v0%20%2B%20v1-1f6feb)]()
 [![predicate](https://img.shields.io/badge/predicate-v0%20%2B%20v1-blue)]()
 [![statement](https://img.shields.io/badge/container-in--toto%20Statement%20v1-1f6feb)]()
-[![go](https://img.shields.io/badge/go-1.23-00ADD8)]()
+[![go](https://img.shields.io/badge/go-1.25-00ADD8)]()
 [![schema](https://img.shields.io/badge/schema-JSON%20Schema%20%2B%20CUE-8b5cf6)]()
 [![policy](https://img.shields.io/badge/policy-OPA%2FRego-7d3aed)]()
 [![cache](https://img.shields.io/badge/cache-SQLite-003B57)]()
@@ -125,7 +125,7 @@ Eight layers; dependencies flow inward (orchestration → domain) then outward t
 
 ### Prerequisites
 
-- Go ≥ 1.23
+- Go ≥ 1.25
 - `git` on `PATH`
 - (optional) `cue` and `opa` for hand validation outside Go tests
 
@@ -422,7 +422,7 @@ Tracked in [`TASKS.md`](TASKS.md) with deterministic acceptance criteria — *"n
 | Milestone | Scope | Status |
 |---|---|---|
 | **v0 foundation** | Skeleton · predicate types · git binding · cache · in-toto assembly · Rego policy · golden harness · privacy gate | **shipped** — 33 golden fixtures pass |
-| **v0 signing** | `internal/signing` DSSE / Sigstore / GitHub-attestation adapter that emits verified verifier context | not started |
+| **v0 signing** | `internal/signing`: DSSE envelope + X.509 identity → verified verifier context | **shipped (envelope + identity)**; Fulcio/Rekor root + bundle path pending |
 | **v1 contract** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent` — binds the 2026 harness plane | **shipped in this upgrade** — 8 new golden fixtures pass |
 | **v0.1 integration** | GitHub Action · attestation verification · PR summary · harness capture SDK · registry | planned |
 

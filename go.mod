@@ -1,11 +1,12 @@
 module agentattest.dev/agentattest
 
-go 1.23
+go 1.25.0
 
 require (
 	cuelang.org/go v0.11.0
 	github.com/open-policy-agent/opa v1.1.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
+	github.com/secure-systems-lab/go-securesystemslib v0.11.1
 	modernc.org/sqlite v1.36.0
 )
 
@@ -49,12 +50,13 @@ require (
 	go.opentelemetry.io/otel/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	google.golang.org/protobuf v1.36.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/libc v1.61.13 // indirect

@@ -9,7 +9,7 @@
 [![status](https://img.shields.io/badge/status-v0%20%2B%20v1-1f6feb)]()
 [![predicate](https://img.shields.io/badge/predicate-v0%20%2B%20v1-blue)]()
 [![statement](https://img.shields.io/badge/container-in--toto%20Statement%20v1-1f6feb)]()
-[![go](https://img.shields.io/badge/go-1.23-00ADD8)]()
+[![go](https://img.shields.io/badge/go-1.25-00ADD8)]()
 [![schema](https://img.shields.io/badge/schema-JSON%20Schema%20%2B%20CUE-8b5cf6)]()
 [![policy](https://img.shields.io/badge/policy-OPA%2FRego-7d3aed)]()
 [![cache](https://img.shields.io/badge/cache-SQLite-003B57)]()
@@ -125,7 +125,7 @@ AI 编程代理已经在大量生产真实 PR，但生态目前仅有**指纹识
 
 ### 前置条件
 
-- Go ≥ 1.23
+- Go ≥ 1.25
 - `git` 在 `PATH` 中
 - （可选）`cue` 与 `opa`，用于 Go 测试以外的手工校验
 
@@ -422,7 +422,7 @@ agentattest/
 | 里程碑 | 范围 | 状态 |
 |---|---|---|
 | **v0 基础** | 骨架 · 谓词类型 · git 绑定 · 缓存 · in-toto 组装 · Rego 策略 · Golden 测试套 · 隐私门 | **已交付**——33 个 golden fixture 通过 |
-| **v0 签名** | `internal/signing`：DSSE / Sigstore / GitHub-attestation 适配器，产出已验证的验证器上下文 | 未开始 |
+| **v0 签名** | `internal/signing`：DSSE 信封 + X.509 身份 → 已验证的验证器上下文 | **已交付（信封 + 身份层）**；Fulcio/Rekor 根与 bundle 路径待补 |
 | **v1 契约** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent`——绑定 2026 harness 层面 | **本次升级已交付**——8 个新 golden fixture 通过 |
 | **v0.1 集成** | GitHub Action · attestation 验证 · PR 摘要 · harness 采集 SDK · registry | 计划中 |
 

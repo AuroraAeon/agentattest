@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Status
 
-This is `agentattest`: a thin interoperability layer for AI coding-agent provenance, with a working Go module (`go 1.23`) plus JSON Schema, CUE, a Rego policy, and golden fixtures. The **v0** contract and the 5-phase Go verifier are shipped and tested (41 golden fixtures pass). The **v1** contract (`https://agentattest.dev/predicate/v1`), which binds the 2026 frontier-harness plane, shipped in the September-2026 overhaul — see [`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md) and the current [`TASKS.md`](TASKS.md). Still ahead: the `internal/signing` DSSE/Sigstore/GitHub-attestation adapter, the GitHub Action, and PR summary output.
+This is `agentattest`: a thin interoperability layer for AI coding-agent provenance, with a working Go module (`go 1.25`) plus JSON Schema, CUE, a Rego policy, and golden fixtures. The **v0** contract and the 5-phase Go verifier are shipped and tested (41 golden fixtures pass). The **v1** contract (`https://agentattest.dev/predicate/v1`), which binds the 2026 frontier-harness plane, shipped in the September-2026 overhaul — see [`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md) and the current [`TASKS.md`](TASKS.md). `internal/signing` (DSSE envelope + X.509 identity extraction) is shipped; still ahead: full Fulcio/Rekor root + bundle verification, the GitHub Action, and PR summary output.
 
 When adding code, the planned stack is: Go for CLI/verifier, JSON Schema + CUE for the predicate, Rego (and optionally CUE) for policy, SQLite for cache, GitHub Action wrapper. Do not introduce other languages or runtimes without revisiting `ARCHITECTURE.md`.
 
