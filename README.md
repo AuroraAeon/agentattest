@@ -368,6 +368,8 @@ agentattest/
 │   ├── statement/   in-toto v1      parse / new / typed Document
 │   ├── verify/      pipeline        phase01..05, OrderFailureCodes, golden_test, testdata
 │   ├── signing/     DSSE + X.509    Sign/Verify envelope → verified signer/builder/issuer context
+│   ├── capture/     harness SDK     emit harness-native v1 statements (no raw content)
+│   ├── registry/    discovery       read-only subject/repo/runId index (SQLite)
 │   ├── policy/      Rego adapter    wraps open-policy-agent/opa
 │   ├── cache/       SQLite          refs · digests · timestamps  (no pass/fail)
 │   └── contracts/   path locator    walks up to find schema/CUE/policy/context
@@ -427,9 +429,9 @@ Tracked in [`TASKS.md`](TASKS.md) with deterministic acceptance criteria — *"n
 | Milestone | Scope | Status |
 |---|---|---|
 | **v0 foundation** | Skeleton · predicate types · git binding · cache · in-toto assembly · Rego policy · golden harness · privacy gate | **shipped** — 33 golden fixtures pass |
-| **v0 signing** | `internal/signing`: DSSE + X.509 identity + trust-root chain + Sigstore/`gh attestation` bundle ingestion → verified context | **shipped**; Rekor inclusion-proof pending |
+| **v0 signing** | `internal/signing`: DSSE + X.509 identity + trust-root chain + Sigstore/`gh attestation` bundle ingestion + RFC 6962 Rekor inclusion binding → verified context | **shipped** |
 | **v1 contract** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent` — binds the 2026 harness plane | **shipped in this upgrade** — 8 new golden fixtures pass |
-| **v0.1 integration** | GitHub Action (`action/`) + `context`/`summary` CLI shipped; `gh attestation` ingestion · harness capture SDK · registry | Action + summary shipped; rest planned |
+| **v0.1 integration** | GitHub Action + `verify bundle` + `context`/`summary` CLI + harness capture SDK (`internal/capture`) + registry (`internal/registry`) | **shipped** |
 
 ---
 

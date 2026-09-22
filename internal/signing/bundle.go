@@ -52,6 +52,9 @@ func FromSigstoreBundle(ctx context.Context, bundleJSON []byte, trust TrustRoot)
 	if err != nil {
 		return VerifiedContext{}, nil, err
 	}
+	if err := verifyRekorInclusion(root, trust); err != nil {
+		return VerifiedContext{}, nil, err
+	}
 	payload, err := env.DecodeB64Payload()
 	if err != nil {
 		return VerifiedContext{}, nil, fmt.Errorf("signing: decode payload: %w", err)

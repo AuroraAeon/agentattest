@@ -368,6 +368,8 @@ agentattest/
 │   ├── statement/   in-toto v1      parse / new / 类型化 Document
 │   ├── verify/      流水线          phase01..05、OrderFailureCodes、golden_test、testdata
 │   ├── signing/     DSSE + X.509    Sign/Verify 信封 → 已验证的签名者/builder/issuer 上下文
+│   ├── capture/     harness SDK     产出 harness-native v1 statement（不含原始内容）
+│   ├── registry/    发现索引         只读的 subject/repo/runId 索引（SQLite）
 │   ├── policy/      Rego 适配器     封装 open-policy-agent/opa
 │   ├── cache/       SQLite          refs · digests · timestamps（不存通过/失败结果）
 │   └── contracts/   路径定位        向上查找 schema/CUE/policy/context
@@ -427,9 +429,9 @@ agentattest/
 | 里程碑 | 范围 | 状态 |
 |---|---|---|
 | **v0 基础** | 骨架 · 谓词类型 · git 绑定 · 缓存 · in-toto 组装 · Rego 策略 · Golden 测试套 · 隐私门 | **已交付**——33 个 golden fixture 通过 |
-| **v0 签名** | `internal/signing`：DSSE + X.509 身份 + 信任根链校验 + Sigstore/`gh attestation` bundle 摄取 → 已验证上下文 | **已交付**；Rekor 包含证明待补 |
+| **v0 签名** | `internal/signing`：DSSE + X.509 身份 + 信任根链校验 + Sigstore/`gh attestation` bundle 摄取 + RFC 6962 Rekor 包含证明绑定 → 已验证上下文 | **已交付** |
 | **v1 契约** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent`——绑定 2026 harness 层面 | **本次升级已交付**——8 个新 golden fixture 通过 |
-| **v0.1 集成** | GitHub Action（`action/`）+ `context`/`summary` CLI 已交付；`gh attestation` 摄取 · harness 采集 SDK · registry | Action + 摘要已交付；其余计划中 |
+| **v0.1 集成** | GitHub Action + `verify bundle` + `context`/`summary` CLI + harness 采集 SDK（`internal/capture`）+ registry（`internal/registry`） | **已交付** |
 
 ---
 

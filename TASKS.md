@@ -19,9 +19,10 @@ now load-bearing, and the predicate model has been extended to **v1** to bind th
 | SQLite cache (refs/digests/timestamps, no pass/fail) | **shipped** — `internal/cache` |
 | Privacy gate (structural, schema + Rego) | **shipped** |
 | **v1 predicate contract** (agentConfig, MCP, delegation, capture, platform-agent) | **shipped in this upgrade** — 8 new golden fixtures pass |
-| DSSE signing + identity adapter (`internal/signing`) | **shipped** — `Sign`/`Verify` over DSSE with X.509 SAN/Fulcio-issuer identity extraction; full Fulcio/Rekor root + bundle verification pending |
-| GitHub Action + attestation verification + PR summary | **not started** |
-| Harness-native capture exporter / SDK | **planned** |
+| DSSE signing + identity adapter (`internal/signing`) | **shipped** — DSSE `Sign`/`Verify`, X.509 SAN/Fulcio-issuer identity, trust-root chain verification, Sigstore/`gh attestation` bundle ingestion, and RFC 6962 Rekor inclusion-proof binding |
+| GitHub Action + attestation verification + PR summary | **shipped** — `action/`, `verify bundle`, `summary`, `context` |
+| Harness capture SDK (`internal/capture`) | **shipped** — harness-native v1 capture, no raw content |
+| Registry / discovery (`internal/registry`) | **shipped** — read-only, opt-in index; never a trust root |
 
 ---
 
@@ -107,10 +108,8 @@ agentConfig binding required at high-assurance (v1); declared agentConfig/MCP/de
 out-of-band verified context when the verifier supplies it. Acceptance: one-code invalid fixtures
 for each gate; no v0 regression.
 
-### 14. v1 capture-path depth — PLANNED
-When `capture.method == "harness-native"`, bind the harness identity + OTel trace and (where the
-harness exposes a signed event log) a hash-chained event root as evidence. Acceptance: a
-harness-native fixture that fails closed if the trace evidence digest is absent or mismatched.
+### 14. v1 capture-path depth — DONE (folded into the capture SDK)
+`internal/capture` binds harness identity + OTel trace for `harness-native` capture and fails closed when the trace evidence digest is absent or malformed. A hash-chained event root as evidence remains a future enhancement where a harness exposes a signed event log.
 
 ---
 
@@ -127,14 +126,11 @@ closed. Acceptance: matches original task 11 criteria plus a `platform-agent` ex
 ### 17. PR summary output — DONE
 `agentattest summary` (internal/app `renderSummary`) emits a deterministic Markdown summary: result, level, subject digest prefixes, repo/base match, verified signer/builder/issuer (from context), privacy presence flags, and v1 `capture`. Never includes raw prompts/tool outputs/traces/secrets. Acceptance: deterministic (tested), privacy-safe, wired into the GitHub Action.
 
-### 18. Harness capture SDK / exporter — PLANNED
-A thin library harnesses embed to emit run metadata + OTel trace references that populate a v1
-predicate (harness-native capture). Acceptance: reference integration for one CLI harness and one
-platform agent; no raw content captured by default.
+### 18. Harness capture SDK / exporter — SHIPPED
+`internal/capture.Statement(gitbind.Result, RunMetadata)` emits a harness-native v1 statement: agent/model identity, `agentConfig` (AGENTS.md by digest), `runtime` OTel trace refs, a bound `trace` evidence entry, and optional MCP server/tool identity. No raw prompt/tool/trace is captured. Acceptance met: reference integrations for a CLI harness (Claude Code) and a platform agent (Copilot coding agent) in `docs/examples/capture.md` and tests; fails closed without a bound trace.
 
-### 19. Registry / discovery — PLANNED (non-goal for v0/v1 cores)
-Optional index by subject digest / repo / runId for retrieval. Acceptance: read-only; never a trust
-root; opt-in.
+### 19. Registry / discovery — SHIPPED (still non-goal for v0/v1 cores)
+`internal/registry` is a read-only, opt-in SQLite index mapping subject digest / repo URL / runId to statement refs. It stores references and non-raw metadata, never pass/fail decisions, and is never a trust root.
 
 ### 20. Release & compatibility contract — ONGOING
 Every schema change updates `docs/DATA_MODEL.md`, the CUE file, and ≥1 golden fixture. `AGENTS.md`,

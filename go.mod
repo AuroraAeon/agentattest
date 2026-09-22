@@ -7,6 +7,7 @@ require (
 	github.com/open-policy-agent/opa v1.1.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/secure-systems-lab/go-securesystemslib v0.11.1
+	github.com/transparency-dev/merkle v0.0.2
 	modernc.org/sqlite v1.36.0
 )
 

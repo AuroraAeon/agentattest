@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -223,6 +224,8 @@ func runVerifyBundle(ctx context.Context, args []string, stdout, stderr io.Write
 	trustRoot := fs.String("trust-root", "", "PEM file with trusted root CA certificate(s)")
 	repo := fs.String("repo", ".", "repository directory")
 	requiredLevel := fs.String("required-level", "policy-grade", "minimum verification level")
+	requireInclusion := fs.Bool("require-inclusion", false, "fail closed if the bundle has no Rekor inclusion proof")
+	rekorRoot := fs.String("rekor-root", "", "hex sha256 of the trusted Rekor log root to bind the inclusion proof to")
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintln(stderr, "error:", err)
 		return 2
@@ -248,7 +251,17 @@ func runVerifyBundle(ctx context.Context, args []string, stdout, stderr io.Write
 		return 1
 	}
 
-	verified, payload, err := signing.FromSigstoreBundle(ctx, bundleJSON, signing.TrustRoot{Roots: roots})
+	trust := signing.TrustRoot{Roots: roots, RequireInclusion: *requireInclusion}
+	if *rekorRoot != "" {
+		rootHash, err := hex.DecodeString(*rekorRoot)
+		if err != nil {
+			fmt.Fprintln(stderr, "error: --rekor-root must be a hex sha256:", err)
+			return 2
+		}
+		trust.RekorRootHash = rootHash
+	}
+
+	verified, payload, err := signing.FromSigstoreBundle(ctx, bundleJSON, trust)
 	if err != nil {
 		fmt.Fprintln(stderr, "error: verify bundle:", err)
 		return 1

@@ -230,6 +230,16 @@ func isGitHubWorkflowRef(s string) bool {
 type TrustRoot struct {
 	Roots          []*x509.Certificate
 	AllowedIssuers []string
+
+	// Rekor transparency-log binding (optional). When a bundle carries a Rekor
+	// tlogEntries inclusion proof, FromSigstoreBundle verifies it per RFC 6962.
+	// RequireInclusion fails closed if a bundle has no inclusion proof.
+	// RekorRootHash, when set, additionally requires the proven root to equal a
+	// known trusted log root. Verifying that the root hash is the authentic
+	// Rekor-signed checkpoint (tlog-checkpoint format + the live Rekor key) is a
+	// separate, caller-supplied step.
+	RequireInclusion bool
+	RekorRootHash    []byte
 }
 
 // VerifyWithTrustRoot verifies that the envelope's leaf certificate chains to a
