@@ -172,6 +172,7 @@ The verifier exits **non-zero** on any failure code and emits a stable JSON resu
 | `agentattest verify predicate --statement PATH --context PATH` | Run the 5-phase pipeline. Returns `{ valid, level, failureCodes[] }` JSON. |
 | `agentattest context [--repo DIR] [--required-level ...]` | Emit a verifier-context JSON (repo URL, base commit, patch subject, required level) from the current repo. |
 | `agentattest summary --statement PATH --context PATH` | Verify and print a deterministic, privacy-safe PR/check summary. |
+| `agentattest verify bundle --bundle PATH --trust-root ROOT.pem [--repo DIR] [--required-level ...]` | Verify a Sigstore / GitHub attestation bundle end to end (chain → identity → policy) to policy-grade; fails closed. |
 
 The CLI delegates to `internal/app`; `cmd/agentattest/main.go` is a six-line entry point.
 
@@ -426,7 +427,7 @@ Tracked in [`TASKS.md`](TASKS.md) with deterministic acceptance criteria — *"n
 | Milestone | Scope | Status |
 |---|---|---|
 | **v0 foundation** | Skeleton · predicate types · git binding · cache · in-toto assembly · Rego policy · golden harness · privacy gate | **shipped** — 33 golden fixtures pass |
-| **v0 signing** | `internal/signing`: DSSE envelope + X.509 identity + trust-root chain verification → verified verifier context | **shipped (envelope + identity + chain)**; Rekor inclusion-proof + Sigstore/`gh attestation` bundle ingestion pending |
+| **v0 signing** | `internal/signing`: DSSE + X.509 identity + trust-root chain + Sigstore/`gh attestation` bundle ingestion → verified context | **shipped**; Rekor inclusion-proof pending |
 | **v1 contract** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent` — binds the 2026 harness plane | **shipped in this upgrade** — 8 new golden fixtures pass |
 | **v0.1 integration** | GitHub Action (`action/`) + `context`/`summary` CLI shipped; `gh attestation` ingestion · harness capture SDK · registry | Action + summary shipped; rest planned |
 

@@ -36,7 +36,19 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	case "predicate":
 		err = runPredicate(ctx, args[1:], stdout)
 	case "verify":
-		return runVerify(ctx, args[1:], stdout, stderr)
+		if len(args) < 2 {
+			fmt.Fprintln(stderr, "error: usage: agentattest verify predicate|bundle ...")
+			return 2
+		}
+		switch args[1] {
+		case "predicate":
+			return runVerify(ctx, args[2:], stdout, stderr)
+		case "bundle":
+			return runVerifyBundle(ctx, args[2:], stdout, stderr)
+		default:
+			fmt.Fprintln(stderr, "error: unknown verify subcommand:", args[1])
+			return 2
+		}
 	case "summary":
 		err = runSummary(ctx, args[1:], stdout)
 	default:
@@ -180,15 +192,11 @@ func applyV1PredicateOptions(opts *predicate.CreateOptions, captureMethod, captu
 }
 
 func runVerify(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	if len(args) == 0 || args[0] != "predicate" {
-		fmt.Fprintln(stderr, "error: usage: agentattest verify predicate --statement PATH --context PATH")
-		return 2
-	}
 	fs := flag.NewFlagSet("verify predicate", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	statementPath := fs.String("statement", "", "statement JSON path")
 	contextPath := fs.String("context", "", "verifier context JSON path")
-	if err := fs.Parse(args[1:]); err != nil {
+	if err := fs.Parse(args); err != nil {
 		fmt.Fprintln(stderr, "error:", err)
 		return 2
 	}
@@ -238,5 +246,6 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "      v1 adds: --capture-method wrapper|ci-step|manual [--capture-harness NAME]")
 	fmt.Fprintln(w, "               [--agent-config PATH] [--model-provider P --model-id M]")
 	fmt.Fprintln(w, "  agentattest verify predicate --statement PATH --context PATH")
+	fmt.Fprintln(w, "  agentattest verify bundle --bundle PATH --trust-root ROOT.pem [--repo DIR] [--required-level ...]")
 	fmt.Fprintln(w, "  agentattest summary --statement PATH --context PATH")
 }

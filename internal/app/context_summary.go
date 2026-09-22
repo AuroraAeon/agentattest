@@ -13,6 +13,7 @@ import (
 
 	"agentattest.dev/agentattest/internal/contracts"
 	"agentattest.dev/agentattest/internal/gitbind"
+	"agentattest.dev/agentattest/internal/signing"
 	"agentattest.dev/agentattest/internal/verify"
 )
 
@@ -208,4 +209,78 @@ func shortHash(s string) string {
 		return s
 	}
 	return s[:8] + "…" + s[len(s)-4:]
+}
+
+// runVerifyBundle verifies a Sigstore / GitHub attestation bundle end to end: it
+// extracts the DSSE envelope + certificate chain, re-verifies the chain against a
+// trusted root, derives the verified identity context, binds it to the current
+// repo subjects, and runs the 5-phase verifier on the decoded statement. It fails
+// closed on any step.
+func runVerifyBundle(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("verify bundle", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	bundle := fs.String("bundle", "", "Sigstore bundle or gh attestation verify JSON path")
+	trustRoot := fs.String("trust-root", "", "PEM file with trusted root CA certificate(s)")
+	repo := fs.String("repo", ".", "repository directory")
+	requiredLevel := fs.String("required-level", "policy-grade", "minimum verification level")
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintln(stderr, "error:", err)
+		return 2
+	}
+	if *bundle == "" || *trustRoot == "" {
+		fmt.Fprintln(stderr, "error: --bundle and --trust-root are required")
+		return 2
+	}
+
+	bundleJSON, err := os.ReadFile(*bundle)
+	if err != nil {
+		fmt.Fprintln(stderr, "error:", err)
+		return 1
+	}
+	trustPEM, err := os.ReadFile(*trustRoot)
+	if err != nil {
+		fmt.Fprintln(stderr, "error:", err)
+		return 1
+	}
+	roots, err := signing.ParseCertificates(trustPEM)
+	if err != nil {
+		fmt.Fprintln(stderr, "error: parse trust root:", err)
+		return 1
+	}
+
+	verified, payload, err := signing.FromSigstoreBundle(ctx, bundleJSON, signing.TrustRoot{Roots: roots})
+	if err != nil {
+		fmt.Fprintln(stderr, "error: verify bundle:", err)
+		return 1
+	}
+
+	result, err := gitbind.Compute(ctx, *repo)
+	if err != nil {
+		fmt.Fprintln(stderr, "error:", err)
+		return 1
+	}
+	contextMap := buildVerifierContext(result, *requiredLevel)
+	for k, v := range verified.ToContextMap() {
+		contextMap[k] = v
+	}
+	contextJSON, err := json.Marshal(contextMap)
+	if err != nil {
+		fmt.Fprintln(stderr, "error:", err)
+		return 1
+	}
+
+	files, err := contracts.Locate("")
+	if err != nil {
+		fmt.Fprintln(stderr, "error:", err)
+		return 1
+	}
+	res := verify.Predicate(ctx, payload, contextJSON, verify.Options{Contracts: files})
+	if err := writeJSON(stdout, res); err != nil {
+		fmt.Fprintln(stderr, "error:", err)
+		return 1
+	}
+	if !res.Valid {
+		return 1
+	}
+	return 0
 }

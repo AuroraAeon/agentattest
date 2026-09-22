@@ -172,6 +172,7 @@ go test ./...
 | `agentattest verify predicate --statement PATH --context PATH` | 跑 5 阶段流水线，返回稳定 JSON `{ valid, level, failureCodes[] }`。 |
 | `agentattest context [--repo DIR] [--required-level ...]` | 从当前仓库产出验证器上下文 JSON（仓库 URL、base commit、patch subject、required level）。 |
 | `agentattest summary --statement PATH --context PATH` | 验证并打印确定性、隐私安全的 PR/检查摘要。 |
+| `agentattest verify bundle --bundle PATH --trust-root ROOT.pem [--repo DIR] [--required-level ...]` | 端到端验证 Sigstore / GitHub attestation bundle（链 → 身份 → 策略）到 policy-grade；fail-closed。 |
 
 CLI 仅做参数路由，业务逻辑全部在 `internal/app`；`cmd/agentattest/main.go` 只有 6 行入口。
 
@@ -426,7 +427,7 @@ agentattest/
 | 里程碑 | 范围 | 状态 |
 |---|---|---|
 | **v0 基础** | 骨架 · 谓词类型 · git 绑定 · 缓存 · in-toto 组装 · Rego 策略 · Golden 测试套 · 隐私门 | **已交付**——33 个 golden fixture 通过 |
-| **v0 签名** | `internal/signing`：DSSE 信封 + X.509 身份 + 信任根链校验 → 已验证的验证器上下文 | **已交付（信封 + 身份 + 链校验）**；Rekor 包含证明 + Sigstore/`gh attestation` bundle 摄取待补 |
+| **v0 签名** | `internal/signing`：DSSE + X.509 身份 + 信任根链校验 + Sigstore/`gh attestation` bundle 摄取 → 已验证上下文 | **已交付**；Rekor 包含证明待补 |
 | **v1 契约** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent`——绑定 2026 harness 层面 | **本次升级已交付**——8 个新 golden fixture 通过 |
 | **v0.1 集成** | GitHub Action（`action/`）+ `context`/`summary` CLI 已交付；`gh attestation` 摄取 · harness 采集 SDK · registry | Action + 摘要已交付；其余计划中 |
 

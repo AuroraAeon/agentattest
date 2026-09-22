@@ -121,9 +121,8 @@ Shipped: `action/action.yml` + `docs/examples/agentattest.yml` (see `action/READ
 patch/tree/artifact; sign via GitHub OIDC/Sigstore; run the verifier; emit a check summary; fail
 closed. Acceptance: matches original task 11 criteria plus a `platform-agent` example workflow.
 
-### 16. GitHub attestation verification path — PLANNED
-Consume `gh attestation verify` / attestation API output as verifier context. Acceptance: verified
-certificate/workflow data distinguished from user-controlled predicate fields.
+### 16. GitHub attestation verification path — SHIPPED
+`internal/signing.FromSigstoreBundle` consumes a Sigstore bundle or `gh attestation verify --format json` output: it pairs the `dsseEnvelope` with its x509 certificate chain, re-verifies the chain against a trusted root (`VerifyWithTrustRoot`), and returns verified context + the decoded statement. `agentattest verify bundle --bundle PATH --trust-root ROOT.pem` runs the full gate to policy-grade. Acceptance met: verified certificate/workflow identity (not user-controlled predicate fields) drives the policy — a self-asserted `declaredIdentity` that disagrees fails with `signer_identity_mismatch` (tested). Rekor inclusion proofs remain the next layer.
 
 ### 17. PR summary output — DONE
 `agentattest summary` (internal/app `renderSummary`) emits a deterministic Markdown summary: result, level, subject digest prefixes, repo/base match, verified signer/builder/issuer (from context), privacy presence flags, and v1 `capture`. Never includes raw prompts/tool outputs/traces/secrets. Acceptance: deterministic (tested), privacy-safe, wired into the GitHub Action.
