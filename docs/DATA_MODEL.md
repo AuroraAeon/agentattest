@@ -32,10 +32,16 @@ The `subject` array binds the signed claim to concrete artifacts. For v0, subjec
 
 | Subject Name | Meaning |
 |---|---|
-| `patch.diff` | Normalized patch produced or modified by the agent run |
+| `patch.diff` | The patch produced or modified by the agent run, hashed as exact bytes |
 | `repo-tree` | Deterministic tree snapshot or tree-manifest digest |
 | `pr-<number>` | Pull request state digest when available |
 | artifact name | Build output, container image, archive, binary, or other release artifact |
+
+**"Normalized" means git-level, not semantic.** `internal/gitbind` hashes the literal output of `git diff --binary --no-color` (`internal/gitbind/gitbind.go`). The only normalization applied is the one git itself performs, plus `--no-color` so the digest is stable across platforms and terminal settings. There is **no** whitespace, formatting, comment, import-order, or AST-level normalization: a pure reformat of the same logical change yields a different `patch.diff` digest and therefore a different attestation.
+
+The practical consequence is that binding is **fail-closed and exact**. An attestation made against diff revision *N* does not cover revision *N+1*, even when the prompt is unchanged and the semantic change is identical — the verifier emits `subject_digest_mismatch` and rejects. Drift is handled by re-running capture, which produces a new `runId` and a new statement, not by tolerating the difference. Optional `changes` (`filesChanged` / `insertions` / `deletions` / `generatedFiles`) is self-asserted descriptive metadata and is never used for binding, so it cannot rescue a reformat.
+
+Repo-level freshness is enforced separately and additively: `repo.baseCommit` (`base_commit_mismatch`), `repo.pullRequest.number` vs `context.expectedPullRequestNumber` and `runId` vs `context.expectedRunId` (`replay_detected`), and `timestamps.finishedAt` vs `context.now` + `context.freshnessWindowSeconds` (`stale_attestation`, which also fails closed when a window is configured but `now` is absent).
 
 The verifier must compare statement subjects to locally computed or CI-provided current subjects as equal sets. Extra statement subjects are rejected because downstream consumers might otherwise trust a subject the verifier did not intend to check.
 
