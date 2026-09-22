@@ -170,6 +170,8 @@ go test ./...
 | `agentattest digest [--repo DIR]` | 计算仓库 URL、分支、base/head commit、patch SHA-256、变更文件 SHA-256。跨平台确定。 |
 | `agentattest predicate create [--repo DIR] [--out PATH] [--version v0\|v1] [--repo-url ...] [--base-commit ...] [--agent-name ...] [--agent-version ...]` | 构建 predicate + in-toto Statement v1，`subject[] = { patch.diff: sha256 }`。默认值：evidence-grade、本地执行、不存原始证据。`--version v1` 额外支持 `--capture-method wrapper\|ci-step\|manual`、`--capture-harness NAME`、`--agent-config PATH`（按摘要绑定 `AGENTS.md`）、`--model-provider P --model-id M`。 |
 | `agentattest verify predicate --statement PATH --context PATH` | 跑 5 阶段流水线，返回稳定 JSON `{ valid, level, failureCodes[] }`。 |
+| `agentattest context [--repo DIR] [--required-level ...]` | 从当前仓库产出验证器上下文 JSON（仓库 URL、base commit、patch subject、required level）。 |
+| `agentattest summary --statement PATH --context PATH` | 验证并打印确定性、隐私安全的 PR/检查摘要。 |
 
 CLI 仅做参数路由，业务逻辑全部在 `internal/app`；`cmd/agentattest/main.go` 只有 6 行入口。
 
@@ -357,6 +359,7 @@ runner 白名单          —                   —                  必需
 ```
 agentattest/
 ├── cmd/agentattest/                 CLI 入口——6 行，路由到 internal/app
+├── action/                          组合式 GitHub Action（包裹 CLI）
 ├── internal/
 │   ├── app/         编排            init · digest · predicate · verify
 │   ├── gitbind/     确定性绑定      仓库 URL · base/head · patch sha256 · 文件 sha256
@@ -425,7 +428,7 @@ agentattest/
 | **v0 基础** | 骨架 · 谓词类型 · git 绑定 · 缓存 · in-toto 组装 · Rego 策略 · Golden 测试套 · 隐私门 | **已交付**——33 个 golden fixture 通过 |
 | **v0 签名** | `internal/signing`：DSSE 信封 + X.509 身份 + 信任根链校验 → 已验证的验证器上下文 | **已交付（信封 + 身份 + 链校验）**；Rekor 包含证明 + Sigstore/`gh attestation` bundle 摄取待补 |
 | **v1 契约** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent`——绑定 2026 harness 层面 | **本次升级已交付**——8 个新 golden fixture 通过 |
-| **v0.1 集成** | GitHub Action · attestation 验证 · PR 摘要 · harness 采集 SDK · registry | 计划中 |
+| **v0.1 集成** | GitHub Action（`action/`）+ `context`/`summary` CLI 已交付；`gh attestation` 摄取 · harness 采集 SDK · registry | Action + 摘要已交付；其余计划中 |
 
 ---
 

@@ -31,10 +31,14 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		err = runInit(ctx, args[1:], stdout)
 	case "digest":
 		err = runDigest(ctx, args[1:], stdout)
+	case "context":
+		err = runContext(ctx, args[1:], stdout)
 	case "predicate":
 		err = runPredicate(ctx, args[1:], stdout)
 	case "verify":
 		return runVerify(ctx, args[1:], stdout, stderr)
+	case "summary":
+		err = runSummary(ctx, args[1:], stdout)
 	default:
 		usage(stderr)
 		return 2
@@ -203,7 +207,7 @@ func runVerify(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		fmt.Fprintln(stderr, "error:", err)
 		return 1
 	}
-	files, err := contracts.Locate(*statementPath)
+	files, err := contracts.Locate("")
 	if err != nil {
 		fmt.Fprintln(stderr, "error:", err)
 		return 1
@@ -229,8 +233,10 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "usage:")
 	fmt.Fprintln(w, "  agentattest init [--dir DIR]")
 	fmt.Fprintln(w, "  agentattest digest [--repo DIR]")
+	fmt.Fprintln(w, "  agentattest context [--repo DIR] [--required-level evidence-grade|policy-grade|high-assurance]")
 	fmt.Fprintln(w, "  agentattest predicate create [--repo DIR] [--out PATH] [--version v0|v1]")
 	fmt.Fprintln(w, "      v1 adds: --capture-method wrapper|ci-step|manual [--capture-harness NAME]")
 	fmt.Fprintln(w, "               [--agent-config PATH] [--model-provider P --model-id M]")
 	fmt.Fprintln(w, "  agentattest verify predicate --statement PATH --context PATH")
+	fmt.Fprintln(w, "  agentattest summary --statement PATH --context PATH")
 }

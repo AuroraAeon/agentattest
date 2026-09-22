@@ -170,6 +170,8 @@ The verifier exits **non-zero** on any failure code and emits a stable JSON resu
 | `agentattest digest [--repo DIR]` | Compute repo URL, branch, base/head commits, patch SHA-256, changed-file SHA-256s. Cross-platform deterministic. |
 | `agentattest predicate create [--repo DIR] [--out PATH] [--version v0\|v1] [--repo-url ...] [--base-commit ...] [--agent-name ...] [--agent-version ...]` | Build a predicate + in-toto Statement v1 with `subject[] = { patch.diff: sha256 }`. Defaults: evidence-grade, local execution, no raw evidence. `--version v1` adds `--capture-method wrapper\|ci-step\|manual`, `--capture-harness NAME`, `--agent-config PATH` (binds `AGENTS.md` by digest), and `--model-provider P --model-id M`. |
 | `agentattest verify predicate --statement PATH --context PATH` | Run the 5-phase pipeline. Returns `{ valid, level, failureCodes[] }` JSON. |
+| `agentattest context [--repo DIR] [--required-level ...]` | Emit a verifier-context JSON (repo URL, base commit, patch subject, required level) from the current repo. |
+| `agentattest summary --statement PATH --context PATH` | Verify and print a deterministic, privacy-safe PR/check summary. |
 
 The CLI delegates to `internal/app`; `cmd/agentattest/main.go` is a six-line entry point.
 
@@ -356,7 +358,8 @@ See [`docs/PRIVACY_MODEL.md`](docs/PRIVACY_MODEL.md) and [`docs/THREAT_MODEL.md`
 
 ```
 agentattest/
-├── cmd/agentattest/                 CLI entry — 6 lines, routes to internal/app
+├── cmd/agentattest/                 CLI entry — routes to internal/app
+├── action/                          composite GitHub Action (wraps the CLI)
 ├── internal/
 │   ├── app/         orchestration   init · digest · predicate · verify
 │   ├── gitbind/     deterministic   repo URL · base/head · patch sha256 · file sha256
@@ -425,7 +428,7 @@ Tracked in [`TASKS.md`](TASKS.md) with deterministic acceptance criteria — *"n
 | **v0 foundation** | Skeleton · predicate types · git binding · cache · in-toto assembly · Rego policy · golden harness · privacy gate | **shipped** — 33 golden fixtures pass |
 | **v0 signing** | `internal/signing`: DSSE envelope + X.509 identity + trust-root chain verification → verified verifier context | **shipped (envelope + identity + chain)**; Rekor inclusion-proof + Sigstore/`gh attestation` bundle ingestion pending |
 | **v1 contract** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent` — binds the 2026 harness plane | **shipped in this upgrade** — 8 new golden fixtures pass |
-| **v0.1 integration** | GitHub Action · attestation verification · PR summary · harness capture SDK · registry | planned |
+| **v0.1 integration** | GitHub Action (`action/`) + `context`/`summary` CLI shipped; `gh attestation` ingestion · harness capture SDK · registry | Action + summary shipped; rest planned |
 
 ---
 

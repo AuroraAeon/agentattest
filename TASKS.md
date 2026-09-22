@@ -116,8 +116,8 @@ harness-native fixture that fails closed if the trace evidence digest is absent 
 
 ## v0.1 — integration & forward work
 
-### 15. GitHub Action — PLANNED
-Composite action wrapping the CLI (no second verifier). Generate a custom-predicate attestation for
+### 15. GitHub Action — SHIPPED (gate + summary; OIDC signing deferred to tasks 16/18)
+Shipped: `action/action.yml` + `docs/examples/agentattest.yml` (see `action/README.md`). Composite action wrapping the CLI (no second verifier). Generate a custom-predicate attestation for
 patch/tree/artifact; sign via GitHub OIDC/Sigstore; run the verifier; emit a check summary; fail
 closed. Acceptance: matches original task 11 criteria plus a `platform-agent` example workflow.
 
@@ -125,10 +125,8 @@ closed. Acceptance: matches original task 11 criteria plus a `platform-agent` ex
 Consume `gh attestation verify` / attestation API output as verifier context. Acceptance: verified
 certificate/workflow data distinguished from user-controlled predicate fields.
 
-### 17. PR summary output — PLANNED
-Deterministic PR/check summary: result, level, subject digest prefixes, repo/base status,
-signer/workflow status, privacy status, and v1 `agentConfig`/`capture` presence. Never includes raw
-prompts/tool outputs/traces/secrets. Acceptance: golden-deterministic output.
+### 17. PR summary output — DONE
+`agentattest summary` (internal/app `renderSummary`) emits a deterministic Markdown summary: result, level, subject digest prefixes, repo/base match, verified signer/builder/issuer (from context), privacy presence flags, and v1 `capture`. Never includes raw prompts/tool outputs/traces/secrets. Acceptance: deterministic (tested), privacy-safe, wired into the GitHub Action.
 
 ### 18. Harness capture SDK / exporter — PLANNED
 A thin library harnesses embed to emit run metadata + OTel trace references that populate a v1

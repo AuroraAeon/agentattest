@@ -1,0 +1,31 @@
+# Example: gate every PR on agentattest provenance.
+#
+# Copy to .github/workflows/agentattest.yml. This uses the local composite action
+# in ./action. It verifies at evidence-grade out of the box; to gate at
+# policy-grade, supply a `context` input whose JSON carries verified identity
+# (see action/README.md).
+
+name: agentattest
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify agent provenance
+        uses: ./action
+        with:
+          version: v1
+          required-level: evidence-grade
+          agent-name: my-coding-agent
+          agent-version: "1.0.0"
+          capture-method: wrapper
+          agent-config: AGENTS.md
+          model-provider: anthropic
+          model-id: claude-sonnet-4

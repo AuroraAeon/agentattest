@@ -1,0 +1,124 @@
+name: "agentattest"
+description: "Bind an AI coding-agent run to the current change and verify it against repository policy, failing closed on any violation and posting a privacy-safe PR summary."
+author: "agentattest"
+
+inputs:
+  version:
+    description: "Predicate contract version (v0 or v1)."
+    required: false
+    default: "v1"
+  required-level:
+    description: "Minimum verification level the gate enforces (evidence-grade | policy-grade | high-assurance)."
+    required: false
+    default: "evidence-grade"
+  agent-name:
+    description: "Agent name recorded in the predicate."
+    required: false
+    default: ""
+  agent-version:
+    description: "Agent version recorded in the predicate."
+    required: false
+    default: ""
+  capture-method:
+    description: "v1 capture method (wrapper | ci-step | manual). harness-native requires a capture integration."
+    required: false
+    default: "wrapper"
+  agent-config:
+    description: "v1 path to the operating contract (e.g. AGENTS.md) to bind by digest."
+    required: false
+    default: ""
+  model-provider:
+    description: "v1 model provider (supply together with model-id)."
+    required: false
+    default: ""
+  model-id:
+    description: "v1 model id (supply together with model-provider)."
+    required: false
+    default: ""
+  context:
+    description: "Path to a verifier-context JSON to use instead of the auto-generated one. Merge verified-identity fields (verifiedSigner/Builder/Workflow/Issuer) here for policy-grade."
+    required: false
+    default: ""
+
+outputs:
+  valid:
+    description: "Whether verification passed (true/false)."
+    value: ${{ steps.verify.outputs.valid }}
+  level:
+    description: "Verification level reached."
+    value: ${{ steps.verify.outputs.level }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: "1.25"
+
+    - name: Build agentattest
+      shell: bash
+      run: go build -o "$RUNNER_TEMP/agentattest" ./cmd/agentattest
+
+    - name: Build verifier context
+      shell: bash
+      env:
+        REQUIRED_LEVEL: ${{ inputs.required-level }}
+        CONTEXT_INPUT: ${{ inputs.context }}
+        BIN: ${{ runner.temp }}/agentattest
+        CTX: ${{ runner.temp }}/context.json
+      run: |
+        if [ -n "$CONTEXT_INPUT" ]; then
+          cp "$CONTEXT_INPUT" "$CTX"
+        else
+          "$BIN" context --repo . --required-level "$REQUIRED_LEVEL" > "$CTX"
+        fi
+
+    - name: Create predicate
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        AGENT_VERSION: ${{ inputs.agent-version }}
+        CAPTURE_METHOD: ${{ inputs.capture-method }}
+        AGENT_CONFIG: ${{ inputs.agent-config }}
+        MODEL_PROVIDER: ${{ inputs.model-provider }}
+        MODEL_ID: ${{ inputs.model-id }}
+        BIN: ${{ runner.temp }}/agentattest
+        STMT: ${{ runner.temp }}/statement.json
+      run: |
+        "$BIN" predicate create --repo . --version "$VERSION" --out "$STMT" \
+          --agent-name "$AGENT_NAME" --agent-version "$AGENT_VERSION" \
+          --capture-method "$CAPTURE_METHOD" --agent-config "$AGENT_CONFIG" \
+          --model-provider "$MODEL_PROVIDER" --model-id "$MODEL_ID"
+
+    - name: Verify
+      id: verify
+      shell: bash
+      env:
+        BIN: ${{ runner.temp }}/agentattest
+        STMT: ${{ runner.temp }}/statement.json
+        CTX: ${{ runner.temp }}/context.json
+        RESULT: ${{ runner.temp }}/result.json
+      run: |
+        set +e
+        "$BIN" verify predicate --statement "$STMT" --context "$CTX" | tee "$RESULT"
+        code=${PIPESTATUS[0]}
+        echo "valid=$(jq -r .valid "$RESULT")" >> "$GITHUB_OUTPUT"
+        echo "level=$(jq -r .level "$RESULT")" >> "$GITHUB_OUTPUT"
+        exit "$code"
+
+    - name: PR summary
+      if: always()
+      shell: bash
+      env:
+        BIN: ${{ runner.temp }}/agentattest
+        STMT: ${{ runner.temp }}/statement.json
+        CTX: ${{ runner.temp }}/context.json
+      run: |
+        "$BIN" summary --statement "$STMT" --context "$CTX" >> "$GITHUB_STEP_SUMMARY" || true
