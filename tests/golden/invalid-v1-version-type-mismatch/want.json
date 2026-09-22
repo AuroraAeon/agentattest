@@ -1,0 +1,5 @@
+{
+  "valid": false,
+  "level": "policy-grade",
+  "failureCodes": ["unsupported_predicate_version"]
+}

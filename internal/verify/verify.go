@@ -49,14 +49,19 @@ func Predicate(ctx context.Context, statementJSON, contextJSON []byte, opts Opti
 		return finish(level, codes)
 	}
 
-	if err := validateJSONSchema(files.PredicateSchema, doc.Predicate); err != nil {
+	schemaPath, cuePath, cueDef, ok := contractForVersion(files, doc.PredicateType)
+	if !ok {
+		return finish(level, []string{"predicate_type_mismatch"})
+	}
+
+	if err := validateJSONSchema(schemaPath, doc.Predicate); err != nil {
 		return finish(level, []string{"schema_invalid"})
 	}
 	if err := validateJSONSchema(files.ContextSchema, contextJSON); err != nil {
 		return finish(level, []string{"schema_invalid"})
 	}
 
-	if err := validateCUE(files.PredicateCUE, doc.Predicate); err != nil {
+	if err := validateCUE(cuePath, cueDef, doc.Predicate); err != nil {
 		return finish(level, []string{"schema_invalid"})
 	}
 
@@ -87,13 +92,39 @@ func phase01(doc statement.Document, predicate map[string]any) []string {
 	if doc.Type != statement.TypeV1 {
 		codes = append(codes, "unsupported_statement_type")
 	}
-	if doc.PredicateType != statement.PredicateTypeV0 {
+	versionFromType := ""
+	switch doc.PredicateType {
+	case statement.PredicateTypeV0:
+		versionFromType = "v0"
+	case statement.PredicateTypeV1:
+		versionFromType = "v1"
+	default:
 		codes = append(codes, "predicate_type_mismatch")
 	}
-	if stringValue(predicate, "predicateVersion") != "v0" {
+	declared := stringValue(predicate, "predicateVersion")
+	switch declared {
+	case "v0", "v1":
+		if versionFromType != "" && declared != versionFromType {
+			codes = append(codes, "unsupported_predicate_version")
+		}
+	default:
 		codes = append(codes, "unsupported_predicate_version")
 	}
 	return codes
+}
+
+// contractForVersion selects the predicate schema file, CUE file, and CUE
+// definition for a statement's predicateType. It returns ok=false for any
+// predicateType that is not a known agentattest contract version.
+func contractForVersion(files contracts.Files, predicateType string) (schemaPath, cuePath, cueDef string, ok bool) {
+	switch predicateType {
+	case statement.PredicateTypeV0:
+		return files.PredicateSchema, files.PredicateCUE, "#AgentProvenanceV0", true
+	case statement.PredicateTypeV1:
+		return files.PredicateSchemaV1, files.PredicateCUEV1, "#AgentProvenanceV1", true
+	default:
+		return "", "", "", false
+	}
 }
 
 func finish(level string, codes []string) Result {
@@ -132,7 +163,7 @@ func validateJSONSchema(schemaPath string, document []byte) error {
 	return schema.Validate(instance)
 }
 
-func validateCUE(cuePath string, predicateJSON []byte) error {
+func validateCUE(cuePath, cueDef string, predicateJSON []byte) error {
 	ctx := cuecontext.New()
 	instances := load.Instances([]string{cuePath}, &load.Config{Dir: filepath.Dir(cuePath)})
 	if len(instances) != 1 {
@@ -142,9 +173,9 @@ func validateCUE(cuePath string, predicateJSON []byte) error {
 	if err := contract.Err(); err != nil {
 		return err
 	}
-	schema := contract.LookupPath(cue.MakePath(cue.Def("#AgentProvenanceV0")))
+	schema := contract.LookupPath(cue.MakePath(cue.Def(cueDef)))
 	if !schema.Exists() {
-		return fmt.Errorf("CUE definition #AgentProvenanceV0 not found")
+		return fmt.Errorf("CUE definition %s not found", cueDef)
 	}
 
 	expr, err := cuejson.Extract("predicate.json", predicateJSON)

@@ -82,6 +82,17 @@ Verifier implementations must run these phases in order. Each invariant has one 
 
 Phase 04 is the only phase that enforces `level_escalation`. JSON Schema and CUE intentionally allow a policy-grade predicate with local-only evidence or missing high-assurance policy evidence so Rego can emit the stable policy failure code.
 
+## v0 And v1 Routing
+
+The pipeline is identical for both predicate versions. Phase 01 accepts `predicateType` and `predicateVersion` in `{v0, v1}`, requires them to be consistent (a `v1` type with a `v0` version, or vice versa, fails with `unsupported_predicate_version`), and then routes to the matching schema and CUE definition:
+
+| predicateType | Schema | CUE definition |
+|---|---|---|
+| `https://agentattest.dev/predicate/v0` | `schemas/agent-provenance-v0.schema.json` | `#AgentProvenanceV0` |
+| `https://agentattest.dev/predicate/v1` | `schemas/agent-provenance-v1.schema.json` | `#AgentProvenanceV1` |
+
+An unknown `predicateType` fails with `predicate_type_mismatch`. Phases 02–05 and the failure-code vocabulary are shared; v1 adds no new failure codes. The default Rego policy applies v1-specific gates (agentConfig / MCP / delegation) only when the relevant verifier context is present, so v0 outcomes are byte-for-byte unchanged.
+
 ## Verification Inputs
 
 The verifier should evaluate:
@@ -93,6 +104,7 @@ The verifier should evaluate:
 - Current subject digests for patch, tree, PR state, or build artifact.
 - `context.requiredLevel`, which defines the repository minimum accepted level.
 - Verified signer, builder ID, workflow ref, issuer, witness, approval digest, timestamp, PR, and run context derived out of band.
+- **v1 only:** `verifiedAgentConfig` (recomputed operating-contract digest), `verifiedMcpServers` (allowlist of approved server manifest digests), and `verifiedDelegation` (allowlist of verified delegation root `agentRef`s), each derived out of band from a verified envelope or recomputation.
 - Current privacy policy and public-log safety constraints.
 - Default or repository-provided Rego/CUE policy.
 

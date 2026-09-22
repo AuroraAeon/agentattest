@@ -13,6 +13,10 @@ By default:
 - Do not store secrets, API responses, issue bodies, emails, customer text, or internal tickets unless explicitly opted in.
 - Store structured metadata, digests, redacted summaries, and encrypted or access-controlled evidence references instead.
 
+## v1 Note
+
+The v1 additions (`agentConfig`, `mcpServers`, `tools`, `delegation`, `capture`) carry **no raw content** — only paths, names, versions, transports, identities, and SHA-256 digests. They inherit every visibility and public-log rule above: nothing they add may be `public` on a transparency log, and they never embed prompts, tool outputs, or trace payloads. `agentConfig.files[].path`, `mcpServers[].name`, and `tools[].name` are constrained non-PII patterns, so the operating-contract and tool surface can be disclosed as digests without leaking source or secrets.
+
 ## Field-Level Visibility
 
 Every evidence-bearing field should be classified.

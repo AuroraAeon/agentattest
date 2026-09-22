@@ -1,0 +1,13 @@
+{
+  "repoUrl": "https://github.com/example/agentattest",
+  "baseCommit": "0123456789abcdef0123456789abcdef01234567",
+  "requiredLevel": "policy-grade",
+  "subjects": [
+    { "name": "patch.diff", "algorithm": "sha256", "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    { "name": "repo-tree", "algorithm": "sha256", "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+  ],
+  "verifiedSigner": "https://github.com/apps/copilot-swe-agent",
+  "verifiedBuilderId": "https://github.com/apps/copilot-swe-agent",
+  "verifiedWorkflowRef": "copilot-coding-agent:task:example/agentattest:123",
+  "verifiedIssuer": "https://token.actions.githubusercontent.com"
+}

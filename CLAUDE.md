@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Status
 
-This is a **contract/specification repository** for `agentattest`, a thin interoperability layer for AI coding-agent provenance. It includes docs, JSON Schema, CUE, a Rego policy, golden fixtures, and a minimal Go failure-ordering test harness. Full implementation will follow `TASKS.md` (v0-alpha → v0-beta → v0).
+This is `agentattest`: a thin interoperability layer for AI coding-agent provenance, with a working Go module (`go 1.23`) plus JSON Schema, CUE, a Rego policy, and golden fixtures. The **v0** contract and the 5-phase Go verifier are shipped and tested (41 golden fixtures pass). The **v1** contract (`https://agentattest.dev/predicate/v1`), which binds the 2026 frontier-harness plane, shipped in the September-2026 overhaul — see [`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md) and the current [`TASKS.md`](TASKS.md). Still ahead: the `internal/signing` DSSE/Sigstore/GitHub-attestation adapter, the GitHub Action, and PR summary output.
 
 When adding code, the planned stack is: Go for CLI/verifier, JSON Schema + CUE for the predicate, Rego (and optionally CUE) for policy, SQLite for cache, GitHub Action wrapper. Do not introduce other languages or runtimes without revisiting `ARCHITECTURE.md`.
 
@@ -45,7 +45,7 @@ The verifier's behavior is gated by `predicate.verificationLevel`:
 
 ## Hard Invariants (Will Trip You Up)
 
-- `predicateType` must be exactly `https://agentattest.dev/predicate/v0` and `predicate.predicateVersion` exactly `v0`. The Go pre-schema gate rejects unsupported versions before JSON Schema, CUE, or Rego. Breaking changes require a **new** URI and new fixtures, not in-place edits.
+- `predicateType` must be exactly `https://agentattest.dev/predicate/v0` **or** `https://agentattest.dev/predicate/v1`, with a matching `predicate.predicateVersion` (`v0` / `v1`). The Go pre-schema gate rejects unknown types and type↔version mismatches before JSON Schema, CUE, or Rego. Breaking changes require a **new** URI and new fixtures, not in-place edits.
 - Every predicate object has `additionalProperties: false`. `extensions` is URI-keyed, but each value is still a closed digest-addressed reference object; arbitrary extension blobs are not allowed.
 - A schema change without a matching CUE update **and** a golden fixture update is a broken change.
 - Failure codes in `docs/VERIFICATION_MODEL.md` are part of the public contract — verifier output must use those exact strings.
@@ -62,17 +62,19 @@ The predicate is described in three places that must agree:
 1. `schemas/agent-provenance-v0.schema.json` — structural validation, `additionalProperties: false`, basic types.
 2. `schemas/agent-provenance-v0.cue` — stricter constraints (regexes, level-conditional shape, raw-evidence visibility coupling).
 3. `policies/default.rego` — Phase 04 runtime/context checks (repo URL, base commit, exact subject set, required level, verified identity context, level escalation, public-log privacy, freshness, approval digest binding).
+4. `schemas/agent-provenance-v1.schema.json` + `schemas/agent-provenance-v1.cue` — the v1 superset (`agentConfig` / `mcpServers` / `tools` / `delegation` / `capture` / `platform-agent`), kept in lockstep with each other; `policies/default.rego` adds the v1 agentConfig / MCP / delegation gates when the matching verifier context is present.
 
 Plus `tests/golden/` fixtures (`valid-minimal`, `valid-github-ci`, `invalid-replay`, `invalid-subject-mismatch`, `invalid-raw-prompt-leakage`, `invalid-level-escalation`) must round-trip through all three. Adding a required field without updating fixtures is expected to fail CI.
 
 ## Common Commands
 
-No build/test commands exist yet — the Go module has not been created. Once `cmd/agentattest` lands (Task 1 in `TASKS.md`), the canonical commands per acceptance criteria will be:
+The Go module exists. Canonical commands:
 
-- `go test ./...` — full test run.
-- Schema/CUE/policy checks will be wired into CI alongside `go fmt` / `go vet`.
+- `go build ./...` — build.
+- `go vet ./...` — vet.
+- `go test ./...` — full test run (golden fixtures cover schema + CUE + Rego for both v0 and v1).
 
-Until then, validate by hand:
+Schema / CUE / policy checks run through the Go test pipeline (the `santhosh-tekuri/jsonschema`, `cuelang.org/go`, and `open-policy-agent/opa` libraries), so `go test ./...` is the single source of truth. To validate by hand:
 
 - JSON Schema: any draft-2020-12 validator against `schemas/agent-provenance-v0.schema.json`.
 - CUE: `cue vet schemas/agent-provenance-v0.cue <fixture>`.

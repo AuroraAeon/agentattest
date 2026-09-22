@@ -85,6 +85,33 @@ The verifier must compare statement subjects to locally computed or CI-provided 
 
 `extensions` is a constrained extension point. Each URI-keyed value must be an object with `uri`, `digest`, `mediaType`, `visibility`, and optional `retention`. Inline raw blobs and unplanned fields are not allowed. The default policy rejects public extensions.
 
+## v1 Additions (`https://agentattest.dev/predicate/v1`)
+
+v1 is a superset of v0. Every v0 field, privacy invariant, and failure code is unchanged. v1 adds five optional, digest-addressed surfaces that bind the frontier coding-agent harness plane (reviewed in [`FRONTIER_HARNESS_2026.md`](./FRONTIER_HARNESS_2026.md)).
+
+| Field | Type | Purpose |
+|---|---|---|
+| `capture` | object | How the run was captured: `method` ∈ `harness-native`/`wrapper`/`ci-step`/`manual`, plus `harness` (name) when `harness-native`. `harness-native` requires a `runtime` trace and a `trace` evidence entry. |
+| `agentConfig` | object | The agent operating contract in effect: `primaryFile` (e.g. `AGENTS.md`), `primaryDigest`, and optional `files[]` (`{ path, digest, role }`, role ∈ `instructions`/`tool-rules`/`repo-policy`). |
+| `mcpServers` | array | MCP server identity: `{ name, version?, transport, serverIdentity?, digest }` where `digest` covers the server's tool-manifest / schema bundle. |
+| `tools` | array | Per-tool schema binding: `{ name, server?, schemaDigest }`. |
+| `delegation` | object | Multi-agent / subagent chain: `delegationChain[]` of `{ role, agentRef, identity?, digest? }`. |
+
+v1 also extends a few enums for first-party platform coding agents:
+
+- `agent.invocationKind` gains `platform-agent`.
+- `environment.executionType` gains `platform-agent`; `environment.builder.type` gains `platform-agent`; `builder.runnerClass` gains `platform-managed`.
+- `evidence.type` gains `agent-config`.
+
+These are **self-asserted** like `agent`/`model`. Trust still comes from verified signer / builder / workflow identity plus recomputed subject digests. The default policy enforces v1 semantics deterministically:
+
+- **High-assurance v1** requires a bound `agentConfig` (fails with `missing_evidence`).
+- When the verifier supplies `context.verifiedAgentConfig`, the declared `agentConfig.primaryDigest` must match it (`missing_evidence`).
+- When the verifier supplies `context.verifiedMcpServers` (an allowlist), every declared `mcpServers[].digest` must appear in it (`missing_evidence`).
+- When the verifier supplies `context.verifiedDelegation`, the `delegationChain` root `agentRef` must appear in it (`missing_evidence`).
+
+No raw prompts, tool outputs, or trace payloads are ever stored; MCP / tool binding is digest-only. See [`PRIVACY_MODEL.md`](./PRIVACY_MODEL.md).
+
 ## Sample JSON
 
 ```json

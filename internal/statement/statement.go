@@ -9,6 +9,7 @@ import (
 const (
 	TypeV1          = "https://in-toto.io/Statement/v1"
 	PredicateTypeV0 = "https://agentattest.dev/predicate/v0"
+	PredicateTypeV1 = "https://agentattest.dev/predicate/v1"
 )
 
 type Subject struct {
@@ -51,10 +52,20 @@ func PredicateMap(doc Document) (map[string]any, error) {
 }
 
 func New(subjects []Subject, predicate map[string]any) map[string]any {
+	return newWithType(PredicateTypeV0, subjects, predicate)
+}
+
+// NewV1 wraps subjects and a v1 predicate in an in-toto Statement v1 whose
+// predicateType is https://agentattest.dev/predicate/v1.
+func NewV1(subjects []Subject, predicate map[string]any) map[string]any {
+	return newWithType(PredicateTypeV1, subjects, predicate)
+}
+
+func newWithType(predicateType string, subjects []Subject, predicate map[string]any) map[string]any {
 	return map[string]any{
 		"_type":         TypeV1,
 		"subject":       subjects,
-		"predicateType": PredicateTypeV0,
+		"predicateType": predicateType,
 		"predicate":     predicate,
 	}
 }

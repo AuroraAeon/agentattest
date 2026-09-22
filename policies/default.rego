@@ -217,6 +217,34 @@ deny contains {"code": "stale_attestation", "message": "attestation is outside t
 	now - finished > window_seconds * 1000000000
 }
 
+deny contains {"code": "missing_evidence", "message": "high-assurance v1 requires a bound agent operating contract (agentConfig)"} if {
+	object.get(predicate, "predicateVersion", "") == "v1"
+	level == "high-assurance"
+	count(object.get(predicate, "agentConfig", {})) == 0
+}
+
+deny contains {"code": "missing_evidence", "message": "declared agent config digest does not match verified agent config"} if {
+	verified := object.get(context, "verifiedAgentConfig", {})
+	count(verified) > 0
+	declared := object.get(object.get(predicate, "agentConfig", {}), "primaryDigest", {})
+	declared != verified
+}
+
+deny contains {"code": "missing_evidence", "message": sprintf("mcp server %q is not in the verified allowlist", [server.name])} if {
+	verified_servers := object.get(context, "verifiedMcpServers", [])
+	count(verified_servers) > 0
+	some server in object.get(predicate, "mcpServers", [])
+	not mcp_server_verified(server, verified_servers)
+}
+
+deny contains {"code": "missing_evidence", "message": "delegation chain root is not in the verified delegation set"} if {
+	verified_delegation := object.get(context, "verifiedDelegation", [])
+	count(verified_delegation) > 0
+	chain := object.get(object.get(predicate, "delegation", {}), "delegationChain", [])
+	count(chain) > 0
+	not array_contains(verified_delegation, chain[0].agentRef)
+}
+
 policy_or_higher if {
 	level_rank[level] >= level_rank["policy-grade"]
 }
@@ -250,6 +278,11 @@ approval_evidence_matches_verified_digest if {
 	some evidence in evidence_refs
 	evidence.type == "approval"
 	evidence.digest.sha256 == expected
+}
+
+mcp_server_verified(server, verified_servers) if {
+	some verified in verified_servers
+	verified.sha256 == server.digest.sha256
 }
 
 array_contains(values, value) if {

@@ -23,6 +23,7 @@ Use this file as a map, not a manual. Follow the linked contract documents befor
 
 - JSON Schema for the custom predicate only: `schemas/agent-provenance-v0.schema.json`.
 - CUE constraints for the custom predicate: `schemas/agent-provenance-v0.cue`.
+- v1 superset (frontier-harness bindings): `schemas/agent-provenance-v1.schema.json` + `schemas/agent-provenance-v1.cue`.
 - Default OPA/Rego policy: `policies/default.rego`.
 - Golden fixture structure: `tests/golden/README.md`.
 
@@ -46,6 +47,7 @@ Use this file as a map, not a manual. Follow the linked contract documents befor
 ## Versioning Rules
 
 - Predicate type for v0 is exactly `https://agentattest.dev/predicate/v0`.
+- Predicate type for v1 is exactly `https://agentattest.dev/predicate/v1`; `predicateVersion` is exactly `v1`. The verifier accepts both v0 and v1 and routes schema/CUE by type.
 - The custom predicate field `predicateVersion` is exactly `v0` for this contract pack.
 - Breaking predicate changes require a new predicate URI and new golden fixtures.
 - Non-breaking additions must be optional, documented, schema-constrained, and covered by tests.

@@ -1,185 +1,146 @@
 # Tasks
 
-Implementation is split into v0-alpha, v0-beta, and v0. Every task has deterministic acceptance criteria. No task may rely on AI judgment to decide whether it is secure.
+Implementation is organized by contract generation and capability, not by calendar. Every task
+has deterministic acceptance criteria. **No task may rely on AI judgment to decide whether it is
+secure.**
 
-## v0-alpha
+This roadmap was overhauled in September 2026 after a frontier-harness review
+([`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md)). The April-2026 roadmap is
+superseded: `AGENTS.md`, MCP, harness-native telemetry, and first-party platform coding agents are
+now load-bearing, and the predicate model has been extended to **v1** to bind them.
 
-### 1. Repository Skeleton
+## Status Summary
 
-Create the Go module, CLI entry point, internal package layout, schema directories, policy directories, and test directories.
+| Area | State |
+|---|---|
+| v0 predicate contract (JSON Schema + CUE + Rego) | **shipped** — 33 golden fixtures pass |
+| v0 verifier pipeline (phase 01–05, failure ordering) | **shipped** — `internal/verify` |
+| Deterministic git binding | **shipped** — `internal/gitbind` |
+| SQLite cache (refs/digests/timestamps, no pass/fail) | **shipped** — `internal/cache` |
+| Privacy gate (structural, schema + Rego) | **shipped** |
+| **v1 predicate contract** (agentConfig, MCP, delegation, capture, platform-agent) | **shipped in this upgrade** — 8 new golden fixtures pass |
+| DSSE / Sigstore signing adapter (`internal/signing`) | **not started** — verifier consumes verified context as input |
+| GitHub Action + attestation verification + PR summary | **not started** |
+| Harness-native capture exporter / SDK | **planned** |
 
-Acceptance criteria:
+---
 
-- `go test ./...` runs.
-- Package layout follows `ARCHITECTURE.md`.
-- No package imports violate allowed dependency directions.
-- CI runs formatting, tests, JSON Schema 2020-12 validation, `cue vet`, `opa eval`, and the Go golden fixture runner.
+## v0 — foundation (mostly shipped)
 
-### 2. Predicate Types And Validation
+### 1. Repository skeleton — DONE
+Go module, CLI entry, package layout, schema/policy/test dirs, `ARCHITECTURE.md` boundaries.
+Acceptance: `go test ./...` runs; no forbidden import directions; CI runs fmt/vet/schema/CUE/Rego/golden.
 
-Implement Go types and validation for `https://agentattest.dev/predicate/v0`.
+### 2. Predicate types & validation — DONE
+Go types + JSON Schema 2020-12 + CUE for `https://agentattest.dev/predicate/v0`. Unsupported
+versions rejected pre-schema. Acceptance: valid/invalid goldens; closed objects; URI safety;
+runtime↔trace binding; context schema validation.
 
-Acceptance criteria:
+### 3. Deterministic git binding — DONE
+`internal/gitbind`: normalized repo URL, base/head, patch sha256, changed-file sha256, cross-platform
+deterministic. Acceptance: identical digests on Windows/macOS/Linux; no signing/policy imports.
 
-- Valid minimal and valid GitHub CI golden predicates pass JSON Schema validation.
-- Invalid golden predicates fail with stable failure codes.
-- Go validation rejects unsupported `predicateVersion` before JSON Schema, CUE, or policy evaluation.
-- Tests cover required fields, `additionalProperties` rejection, constrained extensions, URI scheme/userinfo rejection, runtime trace evidence binding, and context schema validation.
+### 4. Local evidence capture contract — DONE
+Default predicate has `rawPrompt.stored=false`, `rawToolOutputs.stored=false`; evidence is
+digest-addressed. Acceptance: raw capture is opt-in and never `public`.
 
-### 3. Deterministic Git Binding
+### 5. SQLite cache — DONE
+`internal/cache` indexes refs/digests/timestamps; never stores authoritative pass/fail.
+Acceptance: verification runs without trusting cache; corruption never yields a valid result.
 
-Compute current repo URL, base commit, normalized patch digest, and tree or tree-manifest digest.
+### 6. in-toto Statement assembly — DONE
+`internal/statement` + `predicate.StatementFor`. Acceptance: exact `_type`/`predicateType`;
+subjects derived from deterministic digests; schema validates before output.
 
-Acceptance criteria:
-
-- Same input patch produces the same SHA-256 digest on Windows, macOS, and Linux.
-- Subject mismatch test fails deterministically.
-- Base commit mismatch test fails deterministically.
-- No signing or policy code is imported by the git binding package.
-
-### 4. Local Evidence Capture Contract
-
-Capture minimal run metadata and evidence references without raw prompts or raw tool outputs by default.
-
-Acceptance criteria:
-
-- Default output has `rawPrompt.stored=false` and `rawToolOutputs.stored=false`.
-- Evidence entries include URI, SHA-256 digest, storage, and visibility.
-- Raw prompt capture requires explicit opt-in.
-- Public raw prompt evidence is rejected by validation or policy.
-
-### 5. SQLite Cache Prototype
-
-Index run IDs, subject digests, statement paths, evidence references, content digests, and last-seen timestamps in SQLite.
-
-Acceptance criteria:
-
-- Verification can run without trusting cache contents.
-- Cache corruption does not produce a valid verification result.
-- Cache tables do not store authoritative pass/fail decisions.
-- Schema migrations are deterministic and tested.
-- No sensitive raw prompt/tool output is stored in default cache tables.
-
-## v0-beta
-
-### 6. in-toto Statement Assembly
-
-Wrap the predicate in in-toto Statement v1.
+### 7. DSSE / Sigstore signing adapter — NOT STARTED
+Isolate all signing/verification of DSSE, cosign, Fulcio/Rekor bundles, and GitHub attestation
+verification in `internal/signing`. Expose signer, certificate, issuer, workflow, builder, witness,
+approval, and timestamp data as **structured verifier context** (the shape already consumed by
+`policies/default.rego`).
 
 Acceptance criteria:
-
-- `_type` is exactly `https://in-toto.io/Statement/v1`.
-- `predicateType` is exactly `https://agentattest.dev/predicate/v0`.
-- Statement subjects are derived from deterministic digest inputs.
-- Predicate schema validates before statement output.
-
-### 7. DSSE And Sigstore Adapter
-
-Add signing and verification adapters through existing DSSE/Sigstore/cosign-compatible libraries or commands.
-
-Acceptance criteria:
-
-- Signing code is isolated to `internal/signing`.
+- Only `internal/signing` imports DSSE/cosign/Fulcio/Rekor/GitHub-attestation libraries.
 - No custom signing primitive is implemented.
-- Verification rejects tampered statement payloads.
-- Verification exposes signer, certificate, issuer, workflow, builder, witness, approval, and timestamp data as structured verifier input.
+- Tampered statement payloads are rejected.
+- Verification produces the `context.verifiedSigner` / `verifiedBuilderId` / `verifiedWorkflowRef` /
+  `verifiedIssuer` / `verifiedWitnesses` / `verifiedApprovalDigest` fields the default policy reads.
+- Platform-agent signers (e.g. GitHub Copilot coding agent bot identity + issuer) are recognized as
+  a first-class verified-signer category for the `platform-agent` builder type.
 
-### 8. Default Rego Policy Integration
+### 8. Default Rego policy — DONE
+`policies/default.rego`: repo/base/subject-set equality, required level, verified identity, level
+escalation, public-log privacy, replay, freshness, high-assurance runner/witness/approval, and the
+v1 agentConfig/MCP/delegation gates. Acceptance: each rule has a golden fixture with one code.
 
-Evaluate `policies/default.rego` against verified statement and context.
+### 9. Golden test harness — DONE
+`internal/verify/golden_test.go` runs every `tests/golden/*` fixture; invalid fixtures pin exactly
+one code; multi-code ordering lives in Go testdata. Acceptance: 41 fixtures stable across runs.
 
-Acceptance criteria:
+### 10. Privacy gate — DONE
+Structural privacy enforced jointly by JSON Schema, CUE, and Rego. Acceptance: public-log blocked
+for raw/trace/credentialed/`data:`/inline-blob/public-extension cases.
 
-- Repo URL mismatch fails.
-- Base commit mismatch fails.
-- Subject digest mismatch fails.
-- Invalid verification level fails.
-- `context.requiredLevel` is enforced with `level_below_required`.
-- Statement subjects are enforced as equal sets, not supersets.
-- Policy-grade and high-assurance require verified signer, builder, workflow, and issuer context.
-- High-assurance requires verified witness and approval context.
-- Public raw prompt evidence fails.
-- Policy-grade with `local-only` evidence fails.
+---
 
-### 9. Golden Test Harness
+## v1 — frontier-harness contract (shipped in this upgrade)
 
-Implement golden fixture runner for schema and policy tests.
+v1 keeps every v0 invariant and adds binding for the harness plane that consolidated in 2026. See
+[`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md) and
+[`docs/DATA_MODEL.md`](docs/DATA_MODEL.md#v1-additions).
 
-Acceptance criteria:
+### 11. v1 predicate contract — DONE
+`https://agentattest.dev/predicate/v1` with `agentConfig`, `mcpServers`, `tools`, `delegation`,
+`capture`, and `platform-agent` builder/execution types. Acceptance: JSON Schema + CUE in lockstep;
+`additionalProperties:false`; privacy invariants preserved; 8 golden fixtures pass.
 
-- All required fixture categories in `tests/golden/README.md` exist.
-- Fixture results are stable across repeated runs.
-- Failure codes are stable strings.
-- Go-side tests enforce stable failure-code ordering, including version failure before subject mismatch.
-- Multi-code ordering tests are separate from golden fixtures; each invalid golden fixture has exactly one expected failure code.
-- Adding a new required predicate field without fixture updates fails CI.
+### 12. v0/v1 verifier routing — DONE
+`internal/verify` phase 01 accepts both predicate types with type/version consistency and routes to
+the matching schema + CUE. Acceptance: v0 outcomes unchanged; v1 fixtures pass; unit tests lock
+routing and consistency.
 
-### 10. Privacy Gate
+### 13. v1 policy gates — DONE
+agentConfig binding required at high-assurance (v1); declared agentConfig/MCP/delegation must match
+out-of-band verified context when the verifier supplies it. Acceptance: one-code invalid fixtures
+for each gate; no v0 regression.
 
-Implement field-level privacy checks before signing or uploading attestations.
+### 14. v1 capture-path depth — PLANNED
+When `capture.method == "harness-native"`, bind the harness identity + OTel trace and (where the
+harness exposes a signed event log) a hash-chained event root as evidence. Acceptance: a
+harness-native fixture that fails closed if the trace evidence digest is absent or mismatched.
 
-Acceptance criteria:
+---
 
-- Public transparency-log output is blocked when raw content, raw evidence references, trace evidence, public extensions, inline extension blobs, credentialed URLs, or `data:` URIs are present.
-- Raw prompt visibility `public` is impossible through normal APIs and rejected if manually supplied.
-- Redaction policy name is required.
-- Tests cover raw prompt, raw tool output, and public log cases.
+## v0.1 — integration & forward work
 
-## v0
+### 15. GitHub Action — PLANNED
+Composite action wrapping the CLI (no second verifier). Generate a custom-predicate attestation for
+patch/tree/artifact; sign via GitHub OIDC/Sigstore; run the verifier; emit a check summary; fail
+closed. Acceptance: matches original task 11 criteria plus a `platform-agent` example workflow.
 
-### 11. GitHub Action
+### 16. GitHub attestation verification path — PLANNED
+Consume `gh attestation verify` / attestation API output as verifier context. Acceptance: verified
+certificate/workflow data distinguished from user-controlled predicate fields.
 
-Provide a GitHub Action using the Go binary or a composite wrapper.
+### 17. PR summary output — PLANNED
+Deterministic PR/check summary: result, level, subject digest prefixes, repo/base status,
+signer/workflow status, privacy status, and v1 `agentConfig`/`capture` presence. Never includes raw
+prompts/tool outputs/traces/secrets. Acceptance: golden-deterministic output.
 
-Acceptance criteria:
+### 18. Harness capture SDK / exporter — PLANNED
+A thin library harnesses embed to emit run metadata + OTel trace references that populate a v1
+predicate (harness-native capture). Acceptance: reference integration for one CLI harness and one
+platform agent; no raw content captured by default.
 
-- Action can generate a custom predicate attestation for a patch/tree/artifact subject.
-- Action uses GitHub OIDC/Sigstore-compatible signing through supported tooling.
-- Action can run the verifier and emit a check summary.
-- Action fails closed on subject, repo, base commit, schema, privacy, or policy failure.
+### 19. Registry / discovery — PLANNED (non-goal for v0/v1 cores)
+Optional index by subject digest / repo / runId for retrieval. Acceptance: read-only; never a trust
+root; opt-in.
 
-### 12. GitHub Attestation Verification Path
+### 20. Release & compatibility contract — ONGOING
+Every schema change updates `docs/DATA_MODEL.md`, the CUE file, and ≥1 golden fixture. `AGENTS.md`,
+`ARCHITECTURE.md`, `docs/*`, `schemas/*`, `policies/*`, and `tests/golden/*` stay consistent. A
+compatibility suite (all goldens) is part of CI.
 
-Integrate with GitHub Artifact Attestations and `gh attestation` where available.
-
-Acceptance criteria:
-
-- Verifier can consume downloaded GitHub attestation verification JSON.
-- Policy can check expected repository and signer workflow.
-- Custom predicate type verification is supported.
-- Tests distinguish verified certificate/workflow data from user-controlled predicate data.
-
-### 13. PR Summary Output
-
-Generate a concise PR/check summary.
-
-Acceptance criteria:
-
-- Summary includes verification result, level, subject digest prefixes, repo/base status, signer/workflow status, and privacy status.
-- Summary never includes raw prompts, raw tool outputs, raw traces, secrets, or private sidecar contents.
-- Summary has deterministic output for golden inputs.
-- Failing summaries include stable failure codes.
-
-### 14. Release And Compatibility Contract
-
-Publish v0 contract docs, schemas, policy, and examples.
-
-Acceptance criteria:
-
-- `AGENTS.md`, `ARCHITECTURE.md`, `docs/*`, `schemas/*`, `policies/*`, and `tests/golden/*` are consistent.
-- JSON Schema and CUE constraints agree for all golden fixtures.
-- The README or release notes state non-goals and privacy defaults.
-- A v0 compatibility test suite is part of CI.
-
-### 15. Security Review Checklist
-
-Add deterministic security review checks for v0.
-
-Acceptance criteria:
-
-- No custom crypto implementation exists.
-- No package outside signing adapters performs signing.
-- No default raw prompt or raw tool-output storage exists.
-- No public-log path accepts raw content.
-- Policy-grade and high-assurance reject local-only evidence.
-- Verification failure modes are documented and tested.
+### 21. Security review checklist — ONGOING
+No custom crypto; signing only in `internal/signing`; no default raw storage; no public-log raw
+content; policy-grade/high-assurance reject local-only evidence; v1 gates fail closed; failure modes
+documented and tested.

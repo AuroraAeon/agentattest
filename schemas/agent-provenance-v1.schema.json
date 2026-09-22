@@ -1,0 +1,1028 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentattest.dev/schemas/agent-provenance-v1.schema.json",
+  "title": "agentattest Agent Provenance Predicate v1",
+  "description": "JSON Schema for the custom predicate used with predicateType https://agentattest.dev/predicate/v1. v1 is a superset of v0 (https://agentattest.dev/predicate/v0) that binds the frontier coding-agent harness plane: the agent operating contract (AGENTS.md), MCP tool/server identity with schema digests, harness-native capture, platform-agent builders, and multi-agent delegation. All v0 privacy invariants are preserved. This schema intentionally does not describe the outer in-toto Statement.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "predicateVersion",
+    "runId",
+    "verificationLevel",
+    "repo",
+    "agent",
+    "environment",
+    "humanApproval",
+    "privacy",
+    "timestamps",
+    "evidence"
+  ],
+  "properties": {
+    "predicateVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "const": "v1"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "verificationLevel": {
+      "type": "string",
+      "enum": [
+        "evidence-grade",
+        "policy-grade",
+        "high-assurance"
+      ]
+    },
+    "repo": {
+      "$ref": "#/$defs/repo"
+    },
+    "agent": {
+      "$ref": "#/$defs/agent"
+    },
+    "model": {
+      "$ref": "#/$defs/model"
+    },
+    "environment": {
+      "$ref": "#/$defs/environment"
+    },
+    "capture": {
+      "$ref": "#/$defs/capture"
+    },
+    "agentConfig": {
+      "$ref": "#/$defs/agentConfig"
+    },
+    "mcpServers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mcpServer"
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/tool"
+      }
+    },
+    "delegation": {
+      "$ref": "#/$defs/delegation"
+    },
+    "runtime": {
+      "$ref": "#/$defs/runtime"
+    },
+    "changes": {
+      "$ref": "#/$defs/changes"
+    },
+    "humanApproval": {
+      "$ref": "#/$defs/humanApproval"
+    },
+    "privacy": {
+      "$ref": "#/$defs/privacy"
+    },
+    "timestamps": {
+      "$ref": "#/$defs/timestamps"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "sidecars": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sidecar"
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/material"
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^https?://"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/extension"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "environment": {
+            "properties": {
+              "executionType": {
+                "const": "github-actions"
+              }
+            },
+            "required": [
+              "executionType"
+            ]
+          }
+        },
+        "required": [
+          "environment"
+        ]
+      },
+      "then": {
+        "properties": {
+          "environment": {
+            "required": [
+              "builder"
+            ],
+            "properties": {
+              "builder": {
+                "required": [
+                  "workflowRef"
+                ],
+                "properties": {
+                  "id": {
+                    "pattern": "^https://github\\.com/[^/]+/[^/]+/\\.github/workflows/[^@]+@.+$"
+                  },
+                  "type": {
+                    "const": "github-actions-workflow"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "capture": {
+            "properties": {
+              "method": {
+                "const": "harness-native"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          }
+        },
+        "required": [
+          "capture"
+        ]
+      },
+      "then": {
+        "properties": {
+          "capture": {
+            "required": [
+              "harness"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "relPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9._/*-]{1,256}$"
+    },
+    "safeUri": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?:(?:https?://[^\\s/@:]+(?::[0-9]+)?(?:/[^\\s]*)?)|(?:artifact|s3|oci)://[^\\s]+|(?:spdx|cyclonedx):[^\\s]+)$"
+    },
+    "repoHttpUri": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^https?://[^\\s/@:]+(?::[0-9]+)?(?:/[^\\s]*)?$"
+    },
+    "rfc3339Utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
+    },
+    "repo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "baseCommit"
+      ],
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/repoHttpUri"
+        },
+        "baseCommit": {
+          "type": "string",
+          "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"
+        },
+        "headCommit": {
+          "type": "string",
+          "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"
+        },
+        "branch": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/-]{1,255}$"
+        },
+        "pullRequest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "number"
+          ],
+          "properties": {
+            "number": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "url": {
+              "$ref": "#/$defs/repoHttpUri"
+            }
+          }
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "invocationKind"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "invocationKind": {
+          "type": "string",
+          "enum": [
+            "local-cli",
+            "ci-step",
+            "api",
+            "mcp-orchestrated",
+            "platform-agent"
+          ]
+        },
+        "declaredIdentity": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:/-]{1,256}$"
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "modelId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "modelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "modelRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "fingerprint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "executionType"
+      ],
+      "properties": {
+        "executionType": {
+          "type": "string",
+          "enum": [
+            "local",
+            "github-actions",
+            "other-ci",
+            "platform-agent",
+            "isolated-runner",
+            "witnessed-runner"
+          ]
+        },
+        "builder": {
+          "$ref": "#/$defs/builder"
+        },
+        "witnesses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/witness"
+          }
+        }
+      }
+    },
+    "builder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "github-actions-workflow",
+            "generic-ci-workflow",
+            "platform-agent",
+            "local-process",
+            "isolated-runner",
+            "witnessed-runner"
+          ]
+        },
+        "workflowRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "runnerClass": {
+          "type": "string",
+          "enum": [
+            "github-hosted",
+            "self-hosted",
+            "isolated",
+            "platform-managed",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "harness-native",
+            "wrapper",
+            "ci-step",
+            "manual"
+          ]
+        },
+        "harness": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "agentConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primaryFile",
+        "primaryDigest"
+      ],
+      "properties": {
+        "primaryFile": {
+          "$ref": "#/$defs/relPath"
+        },
+        "primaryDigest": {
+          "$ref": "#/$defs/digest"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/configFile"
+          }
+        }
+      }
+    },
+    "configFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "digest",
+        "role"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relPath"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "instructions",
+            "tool-rules",
+            "repo-policy"
+          ]
+        }
+      }
+    },
+    "mcpServer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "transport",
+        "digest"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "transport": {
+          "type": "string",
+          "enum": [
+            "stdio",
+            "streamable-http",
+            "sse"
+          ]
+        },
+        "serverIdentity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "schemaDigest"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "server": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "schemaDigest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "delegation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "delegationChain"
+      ],
+      "properties": {
+        "delegationChain": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/delegationStep"
+          }
+        }
+      }
+    },
+    "delegationStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "agentRef"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "agentRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:/-]{1,256}$"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "digest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "transparency-log",
+            "timestamp-authority"
+          ]
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uri": {
+          "$ref": "#/$defs/safeUri"
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "traceFormat",
+        "traceIds"
+      ],
+      "properties": {
+        "traceFormat": {
+          "type": "string",
+          "enum": [
+            "opentelemetry-json",
+            "openinference-otel-json",
+            "otlp-json",
+            "otlp-protobuf"
+          ]
+        },
+        "traceIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$"
+          }
+        },
+        "rootSpanId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{16}$"
+        }
+      }
+    },
+    "changes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "filesChanged",
+        "insertions",
+        "deletions"
+      ],
+      "properties": {
+        "filesChanged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "insertions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deletions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "generatedFiles": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "humanApproval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "none",
+            "not-required",
+            "requested",
+            "approved-after-generation",
+            "approved-before-merge",
+            "rejected"
+          ]
+        },
+        "reviewerRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+:[a-z]+:[A-Za-z0-9._-]{1,200}$"
+          },
+          "uniqueItems": true
+        },
+        "approvalSystem": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "redactionPolicy",
+        "rawPrompt",
+        "rawToolOutputs",
+        "publicTransparencyLog"
+      ],
+      "properties": {
+        "redactionPolicy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "rawPrompt": {
+          "$ref": "#/$defs/rawEvidence"
+        },
+        "rawToolOutputs": {
+          "$ref": "#/$defs/rawEvidence"
+        },
+        "publicTransparencyLog": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "allowed",
+            "includesRawContent"
+          ],
+          "properties": {
+            "allowed": {
+              "type": "boolean"
+            },
+            "includesRawContent": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    "rawEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stored",
+        "visibility"
+      ],
+      "properties": {
+        "stored": {
+          "type": "boolean"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "none",
+            "team",
+            "secret",
+            "encrypted"
+          ]
+        },
+        "encryptedRef": {
+          "$ref": "#/$defs/safeUri"
+        },
+        "retention": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "stored": {
+                "const": false
+              }
+            },
+            "required": [
+              "stored"
+            ]
+          },
+          "then": {
+            "properties": {
+              "visibility": {
+                "const": "none"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stored": {
+                "const": true
+              }
+            },
+            "required": [
+              "stored"
+            ]
+          },
+          "then": {
+            "properties": {
+              "visibility": {
+                "enum": [
+                  "team",
+                  "secret",
+                  "encrypted"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "visibility": {
+                "const": "encrypted"
+              }
+            },
+            "required": [
+              "visibility"
+            ]
+          },
+          "then": {
+            "required": [
+              "encryptedRef"
+            ]
+          }
+        }
+      ]
+    },
+    "timestamps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startedAt",
+        "finishedAt"
+      ],
+      "properties": {
+        "startedAt": {
+          "$ref": "#/$defs/rfc3339Utc"
+        },
+        "finishedAt": {
+          "$ref": "#/$defs/rfc3339Utc"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "uri",
+        "digest",
+        "storage",
+        "visibility"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "trace",
+            "tool-summary",
+            "test-result",
+            "local-log-root",
+            "builder-record",
+            "approval",
+            "mcp-server",
+            "agent-config",
+            "raw-prompt-ref",
+            "raw-tool-output-ref"
+          ]
+        },
+        "uri": {
+          "$ref": "#/$defs/safeUri"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "storage": {
+          "type": "string",
+          "enum": [
+            "local-only",
+            "repo",
+            "artifact-store",
+            "transparency-log",
+            "encrypted-blob"
+          ]
+        },
+        "visibility": {
+          "$ref": "#/$defs/visibility"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "raw-prompt-ref",
+                  "raw-tool-output-ref"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "visibility": {
+                "enum": [
+                  "team",
+                  "secret",
+                  "encrypted"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sidecar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "uri",
+        "digest",
+        "mediaType",
+        "visibility"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "spdx",
+            "cyclonedx",
+            "openvex",
+            "other"
+          ]
+        },
+        "uri": {
+          "$ref": "#/$defs/safeUri"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "visibility": {
+          "$ref": "#/$defs/visibility"
+        }
+      }
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "uri",
+        "digest"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "git-repo",
+            "issue",
+            "pull-request",
+            "artifact",
+            "dependency-snapshot",
+            "other"
+          ]
+        },
+        "uri": {
+          "$ref": "#/$defs/safeUri"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "digest",
+        "mediaType",
+        "visibility"
+      ],
+      "properties": {
+        "uri": {
+          "$ref": "#/$defs/safeUri"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "visibility": {
+          "$ref": "#/$defs/visibility"
+        },
+        "retention": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "team",
+        "secret",
+        "encrypted"
+      ]
+    }
+  }
+}

@@ -129,6 +129,28 @@ Expected result: invalid with `level_escalation`.
 | `invalid-reviewer-ref-pii` | `schema_invalid` |
 | `invalid-timestamp-order` | `schema_invalid` |
 
+## v1 Fixtures
+
+v1 fixtures (`predicateType` `https://agentattest.dev/predicate/v1`) exercise the frontier-harness additions. They use the same three-file shape and the one-code rule.
+
+### Valid
+
+| Fixture | Level | Exercises |
+|---|---|---|
+| `valid-v1-harness-native` | policy-grade | `capture: harness-native` + bound trace, `agentConfig`, `mcpServers`/`tools`, `delegation`, all matched to verified context |
+| `valid-v1-platform-agent` | policy-grade | `executionType`/`builder.type: platform-agent` with a verified platform-bot signer; proves policy-grade does not require `agentConfig` |
+| `valid-v1-high-assurance` | high-assurance | isolated runner + witness + approval + bound `agentConfig` (required at high-assurance v1) |
+
+### Invalid (one code each)
+
+| Fixture | Expected code |
+|---|---|
+| `invalid-v1-agent-config-mismatch` | `missing_evidence` |
+| `invalid-v1-mcp-not-allowlisted` | `missing_evidence` |
+| `invalid-v1-delegation-unverified` | `missing_evidence` |
+| `invalid-v1-capture-native-without-trace` | `schema_invalid` |
+| `invalid-v1-version-type-mismatch` | `unsupported_predicate_version` |
+
 ## Determinism Requirements
 
 - Fixtures must not depend on wall-clock time unless the time is fixed in `context.json`.

@@ -33,7 +33,7 @@ Future implementation should keep these boundaries stable.
 | `internal/trace` | OpenTelemetry/OpenInference reference validation and digest handling | trace UI, trace storage platform |
 | `internal/cache` | SQLite schema, indexing, query APIs for refs, digests, and timestamps | verification truth, pass/fail decisions, cryptographic trust |
 | `action/` | GitHub Action wrapper and workflow integration | verifier logic not available in the CLI |
-| `schemas/` | JSON Schema and CUE contracts | runtime code |
+| `schemas/` | JSON Schema and CUE contracts for predicate v0 and v1 | runtime code |
 | `policies/` | default policy documents | hard-coded verifier invariants |
 | `tests/golden/` | fixtures for schema and policy compatibility | generated production state |
 
@@ -63,10 +63,10 @@ Forbidden directions:
 
 ## Deterministic Constraints For Future Linters
 
-- `predicateType` must be the exact string `https://agentattest.dev/predicate/v0` for v0 statements.
-- `predicate.predicateVersion` must be the exact string `v0`; verifier code must reject unsupported versions before JSON Schema, CUE, or policy evaluation.
+- `predicateType` must be the exact string `https://agentattest.dev/predicate/v0` for v0 statements, or `https://agentattest.dev/predicate/v1` for v1 statements; the verifier routes schema/CUE by type and rejects type↔version mismatches in the pre-schema gate.
+- `predicate.predicateVersion` must be `v0` or `v1`, matching `predicateType`; verifier code must reject unknown or mismatched versions before JSON Schema, CUE, or policy evaluation.
 - The custom predicate schema must keep `additionalProperties: false` except explicitly named `extensions` maps, and extension values must be constrained digest-addressed references rather than arbitrary objects.
-- Every schema change must update `docs/DATA_MODEL.md`, `schemas/agent-provenance-v0.cue`, and at least one golden fixture.
+- Every schema change must update `docs/DATA_MODEL.md`, the matching `schemas/agent-provenance-v0.cue` (or `-v1.cue`), and at least one golden fixture.
 - Verifier code must reject unsupported predicate versions before policy evaluation.
 - Verifier code must reject subject digest mismatches before evaluating approval state.
 - Policy-grade and high-assurance verification must reject `local-only` evidence in Rego with `level_escalation`.

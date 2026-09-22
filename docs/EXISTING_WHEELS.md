@@ -23,6 +23,9 @@
 | OPA/Rego | Policy-as-code | Evaluate repository policy against verified statement and local context | Do not hard-code all repository policy in Go |
 | CUE | Schema and semantic constraints | Express stricter predicate constraints and optional policy checks | Do not make CUE the only supported validation path |
 | Git | Source tree and patch identity | Use commits, refs, trees, diffs, and normalized digest inputs for binding | Do not replace Git object identity or repository policy |
+| `AGENTS.md` | Cross-vendor agent operating contract | Reference and digest the instruction file(s) that governed a run via `agentConfig` | Do not treat the file's contents as a trust root, and do not embed them in the predicate |
+| MCP (Model Context Protocol) | Tool / data connectivity plane | Reference MCP server identity and tool-schema digests via `mcpServers` / `tools` | Do not proxy, host, or re-specify MCP; never store raw tool I/O |
+| Coding-agent harness telemetry (OTel GenAI conventions + lifecycle hooks) | Run capture | Reference harness-emitted OTel trace ids/digests and record `capture.method` | Do not become a trace collector or re-run the harness |
 
 ## Composition Rule
 

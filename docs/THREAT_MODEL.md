@@ -12,6 +12,18 @@ The v0 threat model assumes the attacker may control some local files, tool outp
 | Prompt/tool-output privacy leakage | Do not store raw prompts/tool outputs by default; classify visibility; redact before persistence; prohibit public raw evidence and transparency-log trace/raw storage | Structural checks do not scan referenced content and redaction can miss secrets or personal data | Schema and policy forbid public raw evidence, inline extension blobs, credentialed URLs, `data:` payloads, and unsafe public-log storage |
 | MCP/tool poisoning | Record tool/server identity, schema digest, tool evidence digest, and high-risk tool summaries; require human approval for risky tools | A poisoned tool can still influence generated code before detection | v0 treats MCP/tool evidence as context, not trust; policy can require allowlists and schema digests |
 
+## v1 Threat Additions
+
+v1 binds the harness plane, which introduces a few new threats. Each is handled by treating the new fields as self-asserted and requiring out-of-band verified context before they carry weight.
+
+| Threat | Mitigation | Residual Risk |
+|---|---|---|
+| Operating-contract substitution (a different `AGENTS.md` was actually in effect) | Bind `agentConfig.primaryDigest`; verifier recomputes the digest and rejects a mismatch via `context.verifiedAgentConfig` | A compromised harness can sign a truthful digest of a poisoned instructions file; this proves *which* contract ran, not that it was safe |
+| MCP server / tool-schema swap | Bind `mcpServers[].digest` and `tools[].schemaDigest`; verifier allowlists approved manifests via `context.verifiedMcpServers` | An allowlisted server can still serve a malicious tool at runtime; a schema digest detects surface changes, not behavior |
+| Delegation / subagent identity confusion | `delegation.delegationChain` is self-asserted; only meaningful when matched to `context.verifiedDelegation` | A verified parent can delegate to an unverified child; the chain documents structure, it does not attest the child |
+| Harness-native capture spoofing (claiming `harness-native` without a real trace) | `capture.method == "harness-native"` structurally requires a `runtime` trace and a `trace` evidence entry (CUE) | A forged trace can still be produced; only a verified signer plus a recomputed digest raise assurance |
+| Platform-agent identity spoofing | `builder.type: platform-agent` requires a verified platform-bot signer / builder / issuer from context, exactly like any other identity | A compromised platform account can still produce misleading but signed claims |
+
 ## Trust Boundaries
 
 - Verified envelope data is stronger than predicate data.

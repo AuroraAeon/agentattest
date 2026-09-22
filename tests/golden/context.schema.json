@@ -60,6 +60,24 @@
     "verifiedApprovalDigest": {
       "$ref": "#/$defs/digest"
     },
+    "verifiedAgentConfig": {
+      "$ref": "#/$defs/digest"
+    },
+    "verifiedMcpServers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/digest"
+      }
+    },
+    "verifiedDelegation": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "uniqueItems": true
+    },
     "verifiedWitnesses": {
       "type": "array",
       "items": {

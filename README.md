@@ -6,8 +6,8 @@
 
 **English** &nbsp;|&nbsp; [简体中文](./README.zh-CN.md)
 
-[![status](https://img.shields.io/badge/status-v0--alpha-orange)]()
-[![predicate](https://img.shields.io/badge/predicate-agentattest.dev%2Fpredicate%2Fv0-blue)]()
+[![status](https://img.shields.io/badge/status-v0%20%2B%20v1-1f6feb)]()
+[![predicate](https://img.shields.io/badge/predicate-v0%20%2B%20v1-blue)]()
 [![statement](https://img.shields.io/badge/container-in--toto%20Statement%20v1-1f6feb)]()
 [![go](https://img.shields.io/badge/go-1.23-00ADD8)]()
 [![schema](https://img.shields.io/badge/schema-JSON%20Schema%20%2B%20CUE-8b5cf6)]()
@@ -21,6 +21,8 @@
 ## TL;DR
 
 `agentattest` binds an AI coding-agent run to a concrete git patch, tree, PR, and approval state by emitting an **in-toto Statement v1** carrying a custom predicate `https://agentattest.dev/predicate/v0`.
+
+**v1** (`https://agentattest.dev/predicate/v1`) additionally binds the frontier-harness plane that consolidated in 2026 — the `AGENTS.md` operating contract, MCP tool/server identity with schema digests, harness-native capture, platform-agent identities (e.g. GitHub Copilot coding agent), and multi-agent delegation. **v0 is unchanged and stable.** See [`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md).
 
 It owns *only* the predicate, deterministic subject-binding rules, verifier inputs and failure codes, a default Rego policy, and CLI/Action ergonomics.
 
@@ -239,13 +241,17 @@ The signed claim is an **in-toto Statement v1**. The custom JSON Schema applies 
 
 `model` · `runtime` (OTel / OpenInference trace IDs) · `changes` · `sidecars` (SPDX / CycloneDX / OpenVEX) · `materials` · `extensions` (URI-keyed, **closed**, digest-addressed only)
 
+**v1 optional additions** · `capture` (how the run was captured — `harness-native` / `wrapper` / `ci-step` / `manual`) · `agentConfig` (digest of the `AGENTS.md` / rules that governed the run) · `mcpServers` + `tools` (MCP server identity + per-tool schema digests) · `delegation` (subagent / multi-agent chain)
+
 The full schema is split across three files that **must stay in lockstep**:
 
 | File | Owns |
 |---|---|
 | [`schemas/agent-provenance-v0.schema.json`](schemas/agent-provenance-v0.schema.json) | Structure, `additionalProperties: false`, types, URI patterns, GitHub builder string shape |
 | [`schemas/agent-provenance-v0.cue`](schemas/agent-provenance-v0.cue) | Cross-field semantics — timestamp ordering, runtime ↔ trace-evidence binding, raw-visibility coupling |
-| [`policies/default.rego`](policies/default.rego) | Runtime context — repo / base match, exact subject set, verified identity, level escalation, replay, freshness |
+| [`schemas/agent-provenance-v1.schema.json`](schemas/agent-provenance-v1.schema.json) | v1 structure — adds `agentConfig` / `mcpServers` / `tools` / `delegation` / `capture` / `platform-agent` builder |
+| [`schemas/agent-provenance-v1.cue`](schemas/agent-provenance-v1.cue) | v1 cross-field semantics — `harness-native ⇒ bound trace`, plus every v0 rule |
+| [`policies/default.rego`](policies/default.rego) | Runtime context — repo / base match, exact subject set, verified identity, level escalation, replay, freshness, and the v1 agentConfig / MCP / delegation gates |
 
 ---
 
@@ -255,7 +261,7 @@ Five ordered phases. Each invariant has **one** owning phase; later phases must 
 
 | Phase | Owner | Checks |
 |---|---|---|
-| 01 | Go pre-schema gate (`internal/verify/phase01`) | `_type`, `predicateType`, `predicate.predicateVersion` routing — *before* JSON Schema |
+| 01 | Go pre-schema gate (`internal/verify/phase01`) | `_type`, `predicateType`, `predicate.predicateVersion` routing for **v0/v1** (with type↔version consistency) — *before* JSON Schema |
 | 02 | JSON Schema 2020-12 (`santhosh-tekuri/jsonschema`) | required fields, closed objects, enums, URI safety, GitHub builder shape |
 | 03 | CUE (`cuelang.org/go`) | cross-field semantics: timestamp ordering, `runtime ⇒ trace evidence` |
 | 04 | OPA Rego (`open-policy-agent/opa`) | required level, exact subject set, repo / base match, verified signer / builder / workflow / issuer, level escalation, public-log privacy, witness / approval, replay, freshness |
@@ -361,8 +367,10 @@ agentattest/
 │   ├── cache/       SQLite          refs · digests · timestamps  (no pass/fail)
 │   └── contracts/   path locator    walks up to find schema/CUE/policy/context
 ├── schemas/
-│   ├── agent-provenance-v0.schema.json     JSON Schema 2020-12
-│   └── agent-provenance-v0.cue             CUE cross-field semantics
+│   ├── agent-provenance-v0.schema.json     JSON Schema 2020-12 (v0)
+│   ├── agent-provenance-v0.cue             CUE cross-field semantics (v0)
+│   ├── agent-provenance-v1.schema.json     JSON Schema 2020-12 (v1, frontier-harness)
+│   └── agent-provenance-v1.cue             CUE cross-field semantics (v1)
 ├── policies/
 │   └── default.rego                         OPA Rego phase-04 policy
 ├── tests/golden/                            ~30 fixtures · context.schema.json
@@ -370,6 +378,7 @@ agentattest/
 │   └── invalid-*/       (one expected failure code each)
 ├── docs/
 │   ├── DATA_MODEL.md           predicate fields & semantics
+│   ├── FRONTIER_HARNESS_2026.md 2026 harness landscape review + gap analysis
 │   ├── VERIFICATION_MODEL.md   levels, phases, failure codes
 │   ├── PRIVACY_MODEL.md        defaults, visibility classes
 │   ├── THREAT_MODEL.md         threats, mitigations, residual risk
@@ -377,7 +386,7 @@ agentattest/
 │   └── EXISTING_WHEELS.md      composition map
 ├── AGENTS.md                   entry map and strict rules
 ├── ARCHITECTURE.md             layering, module boundaries, forbidden imports
-├── TASKS.md                    v0-alpha → v0-beta → v0 acceptance criteria
+├── TASKS.md                    v0 → v1 → integration milestones & acceptance criteria
 └── CLAUDE.md                   working notes for AI agents on this repo
 ```
 
@@ -410,11 +419,12 @@ See [`docs/EXISTING_WHEELS.md`](docs/EXISTING_WHEELS.md).
 
 Tracked in [`TASKS.md`](TASKS.md) with deterministic acceptance criteria — *"no task may rely on AI judgment to decide whether it is secure."*
 
-| Milestone | Tasks | Status |
+| Milestone | Scope | Status |
 |---|---|---|
-| **v0-alpha** | 1 Repository skeleton · 2 Predicate types & validation · 3 Deterministic git binding · 4 Local evidence capture contract · 5 SQLite cache prototype | shipped at commit `f839b61` |
-| **v0-beta**  | 6 in-toto Statement assembly · 7 DSSE / Sigstore adapter · 8 Default Rego policy integration · 9 Golden test harness · 10 Privacy gate | in progress |
-| **v0**       | 11 GitHub Action · 12 GitHub attestation verification · 13 PR summary output · 14 Release & compatibility contract · 15 Security review checklist | planned |
+| **v0 foundation** | Skeleton · predicate types · git binding · cache · in-toto assembly · Rego policy · golden harness · privacy gate | **shipped** — 33 golden fixtures pass |
+| **v0 signing** | `internal/signing` DSSE / Sigstore / GitHub-attestation adapter that emits verified verifier context | not started |
+| **v1 contract** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent` — binds the 2026 harness plane | **shipped in this upgrade** — 8 new golden fixtures pass |
+| **v0.1 integration** | GitHub Action · attestation verification · PR summary · harness capture SDK · registry | planned |
 
 ---
 

@@ -1,0 +1,13 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    { "name": "patch.diff", "digest": { "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } }
+  ],
+  "predicateType": "https://agentattest.dev/predicate/v1",
+  "predicate": {
+    "predicateVersion": "v0",
+    "runId": "run_01HTYJ7B4A3H8M0S8P7M2N9Q",
+    "verificationLevel": "policy-grade",
+    "repo": { "url": "https://github.com/example/agentattest", "baseCommit": "0123456789abcdef0123456789abcdef01234567" }
+  }
+}

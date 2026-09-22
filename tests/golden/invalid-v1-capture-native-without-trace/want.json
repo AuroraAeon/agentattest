@@ -1,0 +1,5 @@
+{
+  "valid": false,
+  "level": "policy-grade",
+  "failureCodes": ["schema_invalid"]
+}

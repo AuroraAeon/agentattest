@@ -1,0 +1,50 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    { "name": "patch.diff", "digest": { "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } },
+    { "name": "repo-tree", "digest": { "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" } }
+  ],
+  "predicateType": "https://agentattest.dev/predicate/v1",
+  "predicate": {
+    "predicateVersion": "v1",
+    "runId": "run_01HTYJ7B4A3H8M0S8P7M2N9Q",
+    "verificationLevel": "policy-grade",
+    "repo": {
+      "url": "https://github.com/example/agentattest",
+      "baseCommit": "0123456789abcdef0123456789abcdef01234567",
+      "pullRequest": { "number": 123, "url": "https://github.com/example/agentattest/pull/123" }
+    },
+    "agent": { "name": "example-agent", "version": "1.0.0", "invocationKind": "mcp-orchestrated", "declaredIdentity": "sigstore:github:example-agent" },
+    "environment": {
+      "executionType": "github-actions",
+      "builder": {
+        "id": "https://github.com/example/agentattest/.github/workflows/agentattest.yml@refs/heads/main",
+        "type": "github-actions-workflow",
+        "workflowRef": "https://github.com/example/agentattest/.github/workflows/agentattest.yml@refs/heads/main",
+        "runnerClass": "github-hosted"
+      }
+    },
+    "capture": { "method": "harness-native", "harness": "example-harness" },
+    "agentConfig": {
+      "primaryFile": "AGENTS.md",
+      "primaryDigest": { "sha256": "1111111111111111111111111111111111111111111111111111111111111111" }
+    },
+    "mcpServers": [
+      { "name": "filesystem", "version": "1.2.0", "transport": "stdio", "digest": { "sha256": "2222222222222222222222222222222222222222222222222222222222222222" } },
+      { "name": "unapproved-server", "version": "0.1.0", "transport": "streamable-http", "digest": { "sha256": "9999999999999999999999999999999999999999999999999999999999999999" } }
+    ],
+    "delegation": { "delegationChain": [ { "role": "planner", "agentRef": "planner-agent" } ] },
+    "runtime": { "traceFormat": "otlp-json", "traceIds": ["4bf92f3577b34da6a3ce929d0e0e4736"] },
+    "humanApproval": { "state": "approved-after-generation" },
+    "privacy": {
+      "redactionPolicy": "default-minimal-v1",
+      "rawPrompt": { "stored": false, "visibility": "none" },
+      "rawToolOutputs": { "stored": false, "visibility": "none" },
+      "publicTransparencyLog": { "allowed": true, "includesRawContent": false }
+    },
+    "timestamps": { "startedAt": "2026-04-27T09:12:31Z", "finishedAt": "2026-04-27T09:16:42Z" },
+    "evidence": [
+      { "type": "trace", "uri": "artifact://agentattest/traces/run_01HTYJ7B4A3H8M0S8P7M2N9Q.otel.json", "digest": { "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" }, "mediaType": "application/json", "storage": "artifact-store", "visibility": "team" }
+    ]
+  }
+}

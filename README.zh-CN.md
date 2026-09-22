@@ -6,8 +6,8 @@
 
 **English** &nbsp;|&nbsp; [简体中文](./README.zh-CN.md)
 
-[![status](https://img.shields.io/badge/status-v0--alpha-orange)]()
-[![predicate](https://img.shields.io/badge/predicate-agentattest.dev%2Fpredicate%2Fv0-blue)]()
+[![status](https://img.shields.io/badge/status-v0%20%2B%20v1-1f6feb)]()
+[![predicate](https://img.shields.io/badge/predicate-v0%20%2B%20v1-blue)]()
 [![statement](https://img.shields.io/badge/container-in--toto%20Statement%20v1-1f6feb)]()
 [![go](https://img.shields.io/badge/go-1.23-00ADD8)]()
 [![schema](https://img.shields.io/badge/schema-JSON%20Schema%20%2B%20CUE-8b5cf6)]()
@@ -21,6 +21,8 @@
 ## 一句话说清
 
 `agentattest` 把一次 AI 编程代理的运行记录**确定性绑定**到一个具体的 git patch、tree、PR 及审批状态上，输出一个 **in-toto Statement v1**，其 `predicateType` 严格等于 `https://agentattest.dev/predicate/v0`。
+
+**v1**（`https://agentattest.dev/predicate/v1`）在此基础上额外绑定 2026 年已固化成型的前沿 harness 层面——`AGENTS.md` 运行契约、带 schema 摘要的 MCP 工具/服务器身份、harness 原生采集、平台代理身份（如 GitHub Copilot coding agent）以及多代理委派。**v0 保持原样、稳定不变。** 详见 [`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md)。
 
 本项目**只负责**：自定义 predicate、subject 绑定规则、验证器输入与失败码、默认 Rego 策略，以及 CLI 与 Action 的使用体验。
 
@@ -239,13 +241,17 @@ CLI 仅做参数路由，业务逻辑全部在 `internal/app`；`cmd/agentattest
 
 `model` · `runtime`（OTel / OpenInference trace ID） · `changes` · `sidecars`（SPDX / CycloneDX / OpenVEX） · `materials` · `extensions`（URI 键控、**closed**、必须 digest-addressed）
 
+**v1 新增可选字段** · `capture`（采集方式——`harness-native` / `wrapper` / `ci-step` / `manual`） · `agentConfig`（约束本次运行的 `AGENTS.md` / 规则摘要） · `mcpServers` + `tools`（MCP 服务器身份 + 每工具 schema 摘要） · `delegation`（子代理 / 多代理链）
+
 完整 schema 拆分为三个文件，**必须同步演进**：
 
 | 文件 | 职责 |
 |---|---|
 | [`schemas/agent-provenance-v0.schema.json`](schemas/agent-provenance-v0.schema.json) | 结构、`additionalProperties: false`、类型、URI 模式、GitHub builder 字符串形态 |
 | [`schemas/agent-provenance-v0.cue`](schemas/agent-provenance-v0.cue) | 跨字段语义——时间序、`runtime ↔ trace evidence` 绑定、原始可见性耦合 |
-| [`policies/default.rego`](policies/default.rego) | 运行时上下文——仓库 / base 匹配、subject 等集、身份验证、等级升级、重放、新鲜度 |
+| [`schemas/agent-provenance-v1.schema.json`](schemas/agent-provenance-v1.schema.json) | v1 结构——新增 `agentConfig` / `mcpServers` / `tools` / `delegation` / `capture` / `platform-agent` builder |
+| [`schemas/agent-provenance-v1.cue`](schemas/agent-provenance-v1.cue) | v1 跨字段语义——`harness-native ⇒ 必须绑定 trace`，并含全部 v0 规则 |
+| [`policies/default.rego`](policies/default.rego) | 运行时上下文——仓库 / base 匹配、subject 等集、身份验证、等级升级、重放、新鲜度，以及 v1 的 agentConfig / MCP / delegation 门 |
 
 ---
 
@@ -255,7 +261,7 @@ CLI 仅做参数路由，业务逻辑全部在 `internal/app`；`cmd/agentattest
 
 | 阶段 | 负责模块 | 检查内容 |
 |---|---|---|
-| 01 | Go 预 schema 闸门（`internal/verify/phase01`） | `_type`、`predicateType`、`predicate.predicateVersion` 路由——*在* JSON Schema 之前 |
+| 01 | Go 预 schema 闸门（`internal/verify/phase01`） | `_type`、`predicateType`、`predicate.predicateVersion` 路由（**v0/v1**，含类型↔版本一致性）——*在* JSON Schema 之前 |
 | 02 | JSON Schema 2020-12（`santhosh-tekuri/jsonschema`） | 必填字段、closed object、enum、URI 安全、GitHub builder 形态 |
 | 03 | CUE（`cuelang.org/go`） | 跨字段语义：时间序、`runtime ⇒ trace evidence` |
 | 04 | OPA Rego（`open-policy-agent/opa`） | 必需等级、subject 等集、repo / base 匹配、已验证签名者 / builder / workflow / issuer、等级升级、公链隐私、witness / 审批、重放、新鲜度 |
@@ -361,8 +367,10 @@ agentattest/
 │   ├── cache/       SQLite          refs · digests · timestamps（不存通过/失败结果）
 │   └── contracts/   路径定位        向上查找 schema/CUE/policy/context
 ├── schemas/
-│   ├── agent-provenance-v0.schema.json     JSON Schema 2020-12
-│   └── agent-provenance-v0.cue             CUE 跨字段语义
+│   ├── agent-provenance-v0.schema.json     JSON Schema 2020-12（v0）
+│   ├── agent-provenance-v0.cue             CUE 跨字段语义（v0）
+│   ├── agent-provenance-v1.schema.json     JSON Schema 2020-12（v1，前沿 harness）
+│   └── agent-provenance-v1.cue             CUE 跨字段语义（v1）
 ├── policies/
 │   └── default.rego                         OPA Rego 阶段-04 策略
 ├── tests/golden/                            ~30 个 fixture · context.schema.json
@@ -370,6 +378,7 @@ agentattest/
 │   └── invalid-*/       （每个只期望一个失败码）
 ├── docs/
 │   ├── DATA_MODEL.md           predicate 字段与语义
+│   ├── FRONTIER_HARNESS_2026.md 2026 harness 现状评审 + 差距分析
 │   ├── VERIFICATION_MODEL.md   等级、阶段、失败码
 │   ├── PRIVACY_MODEL.md        默认与可见性分级
 │   ├── THREAT_MODEL.md         威胁、缓解、残余风险
@@ -377,7 +386,7 @@ agentattest/
 │   └── EXISTING_WHEELS.md      组合关系图
 ├── AGENTS.md                   入口地图与严格规则
 ├── ARCHITECTURE.md             分层、模块边界、禁止 import
-├── TASKS.md                    v0-alpha → v0-beta → v0 验收标准
+├── TASKS.md                    v0 → v1 → 集成里程碑与验收标准
 └── CLAUDE.md                   AI 代理在本仓库上的工作笔记
 ```
 
@@ -410,11 +419,12 @@ agentattest/
 
 任务全程跟踪在 [`TASKS.md`](TASKS.md)，每条都有**确定性**验收标准——*"禁止任何任务依赖 AI 的主观判断来决定是否安全。"*
 
-| 里程碑 | 任务 | 状态 |
+| 里程碑 | 范围 | 状态 |
 |---|---|---|
-| **v0-alpha** | 1 仓库骨架 · 2 谓词类型与校验 · 3 确定性 git 绑定 · 4 本地证据采集契约 · 5 SQLite 缓存原型 | 已交付（commit `f839b61`） |
-| **v0-beta**  | 6 in-toto Statement 组装 · 7 DSSE / Sigstore 适配器 · 8 默认 Rego 策略集成 · 9 Golden 测试套 · 10 隐私门 | 进行中 |
-| **v0**       | 11 GitHub Action · 12 GitHub attestation 验证路径 · 13 PR 摘要输出 · 14 Release 与兼容性契约 · 15 安全 review 清单 | 计划中 |
+| **v0 基础** | 骨架 · 谓词类型 · git 绑定 · 缓存 · in-toto 组装 · Rego 策略 · Golden 测试套 · 隐私门 | **已交付**——33 个 golden fixture 通过 |
+| **v0 签名** | `internal/signing`：DSSE / Sigstore / GitHub-attestation 适配器，产出已验证的验证器上下文 | 未开始 |
+| **v1 契约** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent`——绑定 2026 harness 层面 | **本次升级已交付**——8 个新 golden fixture 通过 |
+| **v0.1 集成** | GitHub Action · attestation 验证 · PR 摘要 · harness 采集 SDK · registry | 计划中 |
 
 ---
 
