@@ -168,7 +168,7 @@ The verifier exits **non-zero** on any failure code and emits a stable JSON resu
 |---|---|
 | `agentattest init [--dir DIR]` | Create `.agentattest/` with a SQLite cache and a JSON config. The cache holds **only** refs / digests / timestamps — never pass/fail decisions. |
 | `agentattest digest [--repo DIR]` | Compute repo URL, branch, base/head commits, patch SHA-256, changed-file SHA-256s. Cross-platform deterministic. |
-| `agentattest predicate create [--repo DIR] [--out PATH] [--repo-url ...] [--base-commit ...] [--agent-name ...] [--agent-version ...]` | Build a v0 predicate + in-toto Statement v1 with `subject[] = { patch.diff: sha256 }`. Defaults: evidence-grade, local execution, no raw evidence. |
+| `agentattest predicate create [--repo DIR] [--out PATH] [--version v0\|v1] [--repo-url ...] [--base-commit ...] [--agent-name ...] [--agent-version ...]` | Build a predicate + in-toto Statement v1 with `subject[] = { patch.diff: sha256 }`. Defaults: evidence-grade, local execution, no raw evidence. `--version v1` adds `--capture-method wrapper\|ci-step\|manual`, `--capture-harness NAME`, `--agent-config PATH` (binds `AGENTS.md` by digest), and `--model-provider P --model-id M`. |
 | `agentattest verify predicate --statement PATH --context PATH` | Run the 5-phase pipeline. Returns `{ valid, level, failureCodes[] }` JSON. |
 
 The CLI delegates to `internal/app`; `cmd/agentattest/main.go` is a six-line entry point.

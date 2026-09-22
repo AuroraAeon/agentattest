@@ -168,7 +168,7 @@ go test ./...
 |---|---|
 | `agentattest init [--dir DIR]` | 创建 `.agentattest/`，内含 SQLite 缓存与 JSON 配置。缓存**只**存 refs / digests / timestamps，**绝不**存通过/失败判定。 |
 | `agentattest digest [--repo DIR]` | 计算仓库 URL、分支、base/head commit、patch SHA-256、变更文件 SHA-256。跨平台确定。 |
-| `agentattest predicate create [--repo DIR] [--out PATH] [--repo-url ...] [--base-commit ...] [--agent-name ...] [--agent-version ...]` | 构建 v0 predicate + in-toto Statement v1，`subject[] = { patch.diff: sha256 }`。默认值：evidence-grade、本地执行、不存原始证据。 |
+| `agentattest predicate create [--repo DIR] [--out PATH] [--version v0\|v1] [--repo-url ...] [--base-commit ...] [--agent-name ...] [--agent-version ...]` | 构建 predicate + in-toto Statement v1，`subject[] = { patch.diff: sha256 }`。默认值：evidence-grade、本地执行、不存原始证据。`--version v1` 额外支持 `--capture-method wrapper\|ci-step\|manual`、`--capture-harness NAME`、`--agent-config PATH`（按摘要绑定 `AGENTS.md`）、`--model-provider P --model-id M`。 |
 | `agentattest verify predicate --statement PATH --context PATH` | 跑 5 阶段流水线，返回稳定 JSON `{ valid, level, failureCodes[] }`。 |
 
 CLI 仅做参数路由，业务逻辑全部在 `internal/app`；`cmd/agentattest/main.go` 只有 6 行入口。

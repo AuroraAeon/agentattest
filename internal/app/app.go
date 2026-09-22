@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -80,16 +82,22 @@ func runDigest(ctx context.Context, args []string, stdout io.Writer) error {
 
 func runPredicate(ctx context.Context, args []string, stdout io.Writer) error {
 	if len(args) == 0 || args[0] != "create" {
-		return errors.New("usage: agentattest predicate create [--repo DIR] [--out PATH]")
+		return errors.New("usage: agentattest predicate create [--repo DIR] [--out PATH] [--version v0|v1]")
 	}
 	fs := flag.NewFlagSet("predicate create", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	repo := fs.String("repo", ".", "repository directory")
 	out := fs.String("out", "", "output statement path")
+	version := fs.String("version", "v0", "predicate contract version: v0 or v1")
 	repoURL := fs.String("repo-url", "", "override repository URL")
 	baseCommit := fs.String("base-commit", "", "override base commit")
 	agentName := fs.String("agent-name", "", "agent name")
 	agentVersion := fs.String("agent-version", "", "agent version")
+	captureMethod := fs.String("capture-method", "", "v1: how the run was captured (wrapper|ci-step|manual)")
+	captureHarness := fs.String("capture-harness", "", "v1: harness name when capture-method is harness-native")
+	agentConfig := fs.String("agent-config", "", "v1: path to the operating contract file (e.g. AGENTS.md) to bind by digest")
+	modelProvider := fs.String("model-provider", "", "v1: model provider (with --model-id)")
+	modelID := fs.String("model-id", "", "v1: model id (with --model-provider)")
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -98,13 +106,31 @@ func runPredicate(ctx context.Context, args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	pred := predicate.Create(digest, predicate.CreateOptions{
+
+	opts := predicate.CreateOptions{
 		RepoURL:      *repoURL,
 		BaseCommit:   *baseCommit,
 		AgentName:    *agentName,
 		AgentVersion: *agentVersion,
-	})
-	stmt := predicate.StatementFor(digest, pred)
+	}
+
+	var stmt map[string]any
+	switch *version {
+	case "", "v0":
+		if *captureMethod != "" || *captureHarness != "" || *agentConfig != "" || *modelProvider != "" || *modelID != "" {
+			return errors.New("--capture-method/--capture-harness/--agent-config/--model-provider/--model-id require --version v1")
+		}
+		pred := predicate.Create(digest, opts)
+		stmt = predicate.StatementFor(digest, pred)
+	case "v1":
+		if err := applyV1PredicateOptions(&opts, *captureMethod, *captureHarness, *agentConfig, *modelProvider, *modelID); err != nil {
+			return err
+		}
+		pred := predicate.CreateV1(digest, opts)
+		stmt = predicate.StatementForV1(digest, pred)
+	default:
+		return fmt.Errorf("unsupported --version %q (want v0 or v1)", *version)
+	}
 
 	if *out != "" {
 		content, err := json.MarshalIndent(stmt, "", "  ")
@@ -115,6 +141,38 @@ func runPredicate(ctx context.Context, args []string, stdout io.Writer) error {
 		return os.WriteFile(*out, content, 0o644)
 	}
 	return writeJSON(stdout, stmt)
+}
+
+// applyV1PredicateOptions validates and folds v1-only flags into opts. It
+// refuses harness-native capture because that requires a bound OTel trace that
+// only a harness capture integration (not this CLI) can produce.
+func applyV1PredicateOptions(opts *predicate.CreateOptions, captureMethod, captureHarness, agentConfig, modelProvider, modelID string) error {
+	switch captureMethod {
+	case "", "wrapper", "ci-step", "manual":
+		opts.CaptureMethod = captureMethod
+	case "harness-native":
+		return errors.New("--capture-method harness-native requires a bound OTel trace from a harness capture integration; use wrapper (default), ci-step, or manual")
+	default:
+		return fmt.Errorf("unsupported --capture-method %q (want wrapper, ci-step, or manual)", captureMethod)
+	}
+	opts.CaptureHarness = captureHarness
+
+	if agentConfig != "" {
+		data, err := os.ReadFile(agentConfig)
+		if err != nil {
+			return fmt.Errorf("read --agent-config %q: %w", agentConfig, err)
+		}
+		sum := sha256.Sum256(data)
+		opts.AgentConfigPath = filepath.Base(agentConfig)
+		opts.AgentConfigSHA256 = hex.EncodeToString(sum[:])
+	}
+
+	if (modelProvider == "") != (modelID == "") {
+		return errors.New("--model-provider and --model-id must be supplied together")
+	}
+	opts.ModelProvider = modelProvider
+	opts.ModelID = modelID
+	return nil
 }
 
 func runVerify(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -171,6 +229,8 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "usage:")
 	fmt.Fprintln(w, "  agentattest init [--dir DIR]")
 	fmt.Fprintln(w, "  agentattest digest [--repo DIR]")
-	fmt.Fprintln(w, "  agentattest predicate create [--repo DIR] [--out PATH]")
+	fmt.Fprintln(w, "  agentattest predicate create [--repo DIR] [--out PATH] [--version v0|v1]")
+	fmt.Fprintln(w, "      v1 adds: --capture-method wrapper|ci-step|manual [--capture-harness NAME]")
+	fmt.Fprintln(w, "               [--agent-config PATH] [--model-provider P --model-id M]")
 	fmt.Fprintln(w, "  agentattest verify predicate --statement PATH --context PATH")
 }

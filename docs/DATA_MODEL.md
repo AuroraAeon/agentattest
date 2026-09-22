@@ -112,6 +112,10 @@ These are **self-asserted** like `agent`/`model`. Trust still comes from verifie
 
 No raw prompts, tool outputs, or trace payloads are ever stored; MCP / tool binding is digest-only. See [`PRIVACY_MODEL.md`](./PRIVACY_MODEL.md).
 
+Generate a v1 statement from the CLI with
+`agentattest predicate create --version v1 [--capture-method wrapper|ci-step|manual] [--capture-harness NAME] [--agent-config PATH] [--model-provider P --model-id M]`.
+`--agent-config` binds the operating contract (e.g. `AGENTS.md`) by SHA-256. `harness-native` capture is produced by a harness capture integration, not the CLI, because it requires a bound OTel trace.
+
 ## Sample JSON
 
 ```json
