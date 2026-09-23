@@ -21,6 +21,7 @@ now load-bearing, and the predicate model has been extended to **v1** to bind th
 | **v1 predicate contract** (agentConfig, MCP, delegation, capture, platform-agent) | **shipped in this upgrade** — 8 new golden fixtures pass |
 | DSSE signing + identity adapter (`internal/signing`) | **shipped** — DSSE `Sign`/`Verify`, X.509 SAN/Fulcio-issuer identity, trust-root chain verification, Sigstore/`gh attestation` bundle ingestion, and RFC 6962 Rekor inclusion-proof binding |
 | GitHub Action + attestation verification + PR summary | **shipped** — `action/`, `verify bundle`, `summary`, `context` |
+| CI (fmt/vet/schema/CUE/Rego/golden + 3-OS `-race` matrix) | **shipped** — `.github/workflows/ci.yml` |
 | Harness capture SDK (`internal/capture`) | **shipped** — harness-native v1 capture, no raw content |
 | Registry / discovery (`internal/registry`) | **shipped** — read-only, opt-in index; never a trust root |
 

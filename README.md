@@ -13,6 +13,7 @@
 [![schema](https://img.shields.io/badge/schema-JSON%20Schema%20%2B%20CUE-8b5cf6)]()
 [![policy](https://img.shields.io/badge/policy-OPA%2FRego-7d3aed)]()
 [![cache](https://img.shields.io/badge/cache-SQLite-003B57)]()
+[![ci](https://github.com/AuroraAeon/agentattest/actions/workflows/ci.yml/badge.svg)](https://github.com/AuroraAeon/agentattest/actions/workflows/ci.yml)
 
 </div>
 
@@ -135,6 +136,11 @@ Eight layers; dependencies flow inward (orchestration → domain) then outward t
 go build ./cmd/agentattest
 go test ./...
 ```
+
+CI (`.github/workflows/ci.yml`) runs the same gates on every push and PR:
+`gofmt` / `go vet` / `go build`; the contract gates (JSON Schema + CUE + Rego +
+golden fixtures — all executed inside `go test`, no external tools required);
+and the full suite with `-race` on Ubuntu, macOS, and Windows.
 
 ### End-to-end against this repo
 

@@ -1,0 +1,69 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: fmt / vet / build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: gofmt (fail on any unformatted file)
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::unformatted files:${unformatted}"
+            exit 1
+          fi
+      - name: go vet
+        run: go vet ./...
+      - name: go build
+        run: go build ./...
+
+  contract:
+    # JSON Schema, CUE, and Rego validation all execute inside the Go test
+    # suite (santhosh-tekuri/jsonschema, cuelang.org/go, open-policy-agent/opa).
+    # These steps pin each contract gate explicitly so a failure names the gate.
+    name: schema / CUE / Rego / golden
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: JSON Schema + CUE + Rego — golden fixtures
+        run: go test ./internal/verify/ -run TestGoldenFixtures -count=1 -v
+      - name: Stable failure-code ordering
+        run: go test ./internal/verify/ -run TestFailureOrderingFixture -count=1
+      - name: v0/v1 predicate version routing
+        run: go test ./internal/verify/ -run 'TestPhase01VersionRouting|TestContractForVersion|TestStatementNewV1' -count=1
+
+  test:
+    # Cross-platform matrix: task 3 acceptance requires identical git/patch/
+    # tree digests on Windows, macOS, and Linux.
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: go test -race ./...
+        run: go test -race ./... -count=1
