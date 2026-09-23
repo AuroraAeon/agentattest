@@ -1,6 +1,6 @@
 module agentattest.dev/agentattest
 
-go 1.27.0
+go 1.25.8
 
 require (
 	cuelang.org/go v0.11.0

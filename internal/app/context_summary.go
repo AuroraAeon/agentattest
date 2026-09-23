@@ -247,6 +247,11 @@ func runVerifyBundle(ctx context.Context, args []string, stdout, stderr io.Write
 			fmt.Fprintln(stderr, "error:", err)
 			return 1
 		}
+		if len(bytes.TrimSpace(trustPEM)) == 0 {
+			// An explicitly supplied but empty trust root must fail closed —
+			// never silently fall back to the TUF-sourced public root.
+			return signatureFailure(stdout, stderr, fmt.Errorf("trust root %q is empty", *trustRoot))
+		}
 	}
 	roots, err := signing.LoadTrustRoot(ctx, signing.TrustRootOptions{ExplicitPEM: trustPEM})
 	if err != nil {

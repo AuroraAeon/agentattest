@@ -1,10 +1,15 @@
-# build output
-/agentattest
-/agentattest.exe
-/dist/
-
 # local cache + config created by `agentattest init`
 .agentattest/
+
+# local smoke-test artifacts (see .github/workflows/ci.yml)
+/agentattest
+/agentattest.exe
+/stmt.json
+/ctx.json
+/result.json
+/digest.json
+/invalid.json
+/dist/
 
 # editor / OS noise
 .DS_Store
