@@ -18,6 +18,7 @@ Use this file as a map, not a manual. Follow the linked contract documents befor
 - Verification semantics and failure modes: `docs/VERIFICATION_MODEL.md`.
 - Security threats and v0 mitigations: `docs/THREAT_MODEL.md`.
 - Privacy defaults and visibility classes: `docs/PRIVACY_MODEL.md`.
+- Security review evidence for the release checklist: `docs/SECURITY_REVIEW.md`.
 
 ## Schema And Policy Map
 
@@ -48,7 +49,6 @@ Use this file as a map, not a manual. Follow the linked contract documents befor
 
 - Predicate type for v0 is exactly `https://agentattest.dev/predicate/v0`.
 - Predicate type for v1 is exactly `https://agentattest.dev/predicate/v1`; `predicateVersion` is exactly `v1`. The verifier accepts both v0 and v1 and routes schema/CUE by type.
-- The custom predicate field `predicateVersion` is exactly `v0` for this contract pack.
 - Breaking predicate changes require a new predicate URI and new golden fixtures.
 - Non-breaking additions must be optional, documented, schema-constrained, and covered by tests.
 

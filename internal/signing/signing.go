@@ -14,10 +14,12 @@
 // library. This adapter never computes git digests, mutates predicates, or
 // decides verification success — it only establishes "who signed this payload".
 //
-// Scope note: this is the envelope + identity layer. Full chain-to-Fulcio-root
-// and Rekor inclusion-proof verification is a later layer that feeds trusted
-// certificates in; the identity extraction here already matches the Sigstore
-// keyless model (SAN for the identity, Fulcio OIDC extension for the issuer).
+// Scope note: this is the envelope + identity layer. Chain-to-Fulcio-root
+// verification (VerifyWithTrustRoot), Sigstore bundle ingestion
+// (FromSigstoreBundle), Rekor inclusion-proof binding (VerifyInclusion), and
+// TUF-sourced trust roots (LoadTrustRoot) all live in this package; the
+// identity extraction matches the Sigstore keyless model (SAN for the
+// identity, Fulcio OIDC extension for the issuer).
 package signing
 
 import (

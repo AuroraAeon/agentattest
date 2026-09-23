@@ -7,6 +7,8 @@
 | in-toto Statement v1 | Outer attestation container | Use `_type`, `subject`, `predicateType`, and `predicate` as the signed claim structure | Do not create a competing statement format or redefine subject semantics |
 | DSSE | Signing envelope for statements | Use DSSE-compatible envelopes through cosign, GitHub, or libraries | Do not create a new envelope, canonicalization scheme, or raw signature wrapper |
 | Sigstore | Signing and verification ecosystem | Use Sigstore trust roots, bundles, and identity-oriented verification where applicable | Do not operate a custom public-good equivalent in v0 |
+| The Update Framework (TUF) | Trust-root distribution and rollback protection | Source the Sigstore community Fulcio root via `sigstore-go/pkg/tuf` when `--trust-root` is omitted (pinned embedded root metadata, hash-verified targets) | Do not implement a custom TUF client, root pinning scheme, or trust-on-first-use fetch |
+| go-tuf (`theupdateframework/go-tuf`) | TUF metadata library underneath the Sigstore client | Used transitively through `sigstore-go/pkg/tuf` | Do not hand-roll metadata verification |
 | cosign | CLI/library path for signing and verifying attestations | Use `cosign attest`, `cosign verify-attestation`, and policy integrations where appropriate | Do not parse ad hoc signature files when cosign-compatible verification is available |
 | Fulcio | OIDC-backed short-lived certificate authority | Reuse certificates issued through Sigstore/GitHub flows | Do not issue certificates or create a project CA |
 | Rekor | Transparency log and timestamp evidence | Reuse transparency proofs and signed timestamps through Sigstore bundles | Do not put sensitive raw evidence into Rekor |
@@ -31,7 +33,7 @@
 
 The project owns only these surfaces:
 
-- The custom predicate URI `https://agentattest.dev/predicate/v0`.
+- The custom predicate URI `https://agentattest.dev/predicate/v0` and its `v1` superset.
 - JSON Schema and CUE constraints for that predicate.
 - Deterministic subject binding rules for patch, tree, PR, and artifact contexts.
 - Verifier inputs and failure modes.

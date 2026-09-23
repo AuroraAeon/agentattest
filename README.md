@@ -21,7 +21,7 @@
 
 ## TL;DR
 
-`agentattest` binds an AI coding-agent run to a concrete git patch, tree, PR, and approval state by emitting an **in-toto Statement v1** carrying a custom predicate `https://agentattest.dev/predicate/v0`.
+`agentattest` binds an AI coding-agent run to a concrete git patch, tree, PR, and approval state by emitting an **in-toto Statement v1** carrying a custom predicate — `https://agentattest.dev/predicate/v0` (and the `v1` superset below).
 
 **v1** (`https://agentattest.dev/predicate/v1`) additionally binds the frontier-harness plane that consolidated in 2026 — the `AGENTS.md` operating contract, MCP tool/server identity with schema digests, harness-native capture, platform-agent identities (e.g. GitHub Copilot coding agent), and multi-agent delegation. **v0 is unchanged and stable.** See [`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md).
 
@@ -172,13 +172,14 @@ The verifier exits **non-zero** on any failure code and emits a stable JSON resu
 
 | Command | Purpose |
 |---|---|
+| `agentattest version` \| `agentattest --version` | Print build info (`version`, `commit`, `date`) as JSON. |
 | `agentattest init [--dir DIR]` | Create `.agentattest/` with a SQLite cache and a JSON config. The cache holds **only** refs / digests / timestamps — never pass/fail decisions. |
 | `agentattest digest [--repo DIR]` | Compute repo URL, branch, base/head commits, patch SHA-256, changed-file SHA-256s. Cross-platform deterministic. |
 | `agentattest predicate create [--repo DIR] [--out PATH] [--version v0\|v1] [--repo-url ...] [--base-commit ...] [--agent-name ...] [--agent-version ...]` | Build a predicate + in-toto Statement v1 with `subject[] = { patch.diff: sha256 }`. Defaults: evidence-grade, local execution, no raw evidence. `--version v1` adds `--capture-method wrapper\|ci-step\|manual`, `--capture-harness NAME`, `--agent-config PATH` (binds `AGENTS.md` by digest), and `--model-provider P --model-id M`. |
 | `agentattest verify predicate --statement PATH --context PATH` | Run the 5-phase pipeline. Returns `{ valid, level, failureCodes[] }` JSON. |
 | `agentattest context [--repo DIR] [--required-level ...]` | Emit a verifier-context JSON (repo URL, base commit, patch subject, required level) from the current repo. |
 | `agentattest summary --statement PATH --context PATH` | Verify and print a deterministic, privacy-safe PR/check summary. |
-| `agentattest verify bundle --bundle PATH --trust-root ROOT.pem [--repo DIR] [--required-level ...]` | Verify a Sigstore / GitHub attestation bundle end to end (chain → identity → policy) to policy-grade; fails closed. |
+| `agentattest verify bundle --bundle PATH [--trust-root ROOT.pem] [--repo DIR] [--required-level ...] [--require-inclusion] [--rekor-root HEX]` | Verify a Sigstore / GitHub attestation bundle end to end (chain → identity → policy) to policy-grade; fails closed. Omit `--trust-root` to fetch the Sigstore community root via TUF; `--require-inclusion` demands a Rekor inclusion proof and `--rekor-root` binds it to a known log root. |
 
 The CLI delegates to `internal/app`; `cmd/agentattest/main.go` is a six-line entry point.
 
@@ -313,24 +314,25 @@ All codes are **stable strings** — part of the public contract. The Go verifie
 | # | Code | Meaning |
 |---|---|---|
 | 10  | `unsupported_statement_type` | `_type` is not in-toto Statement v1 |
-| 20  | `predicate_type_mismatch` | `predicateType` is not `https://agentattest.dev/predicate/v0` |
-| 30  | `unsupported_predicate_version` | `predicateVersion` is not `v0` (rejected before schema) |
+| 20  | `predicate_type_mismatch` | `predicateType` is neither `.../predicate/v0` nor `.../predicate/v1` |
+| 30  | `unsupported_predicate_version` | `predicateVersion` is not `v0`/`v1`, or mismatches `predicateType` (rejected before schema) |
 | 40  | `schema_invalid` | JSON Schema or CUE failure |
-| 50  | `signature_invalid` | DSSE / Sigstore envelope signature failed |
-| 60  | `transparency_verification_failed` | Rekor / timestamp / witness verification failed when required |
-| 70  | `subject_digest_mismatch` | statement subjects ≠ context subjects (set equality) |
+| 50  | `signature_invalid` | DSSE / Sigstore envelope signature, certificate chain, or trust root failed (structured result from `verify bundle`) |
+| 60  | `transparency_verification_failed` | a declared witness is not backed by `context.verifiedWitnesses` |
+| 70  | `subject_digest_mismatch` | statement subjects ≠ context subjects (set equality), no subjects provided, or duplicate context subject names |
 | 80  | `repo_url_mismatch` | predicate repo URL ≠ context repo URL |
 | 90  | `base_commit_mismatch` | predicate base commit ≠ context base commit |
 | 100 | `signer_identity_mismatch` | verified signer missing or ≠ `agent.declaredIdentity` |
 | 110 | `builder_identity_mismatch` | verified builder / workflow / issuer missing or unmatched; self-hosted without opt-in; high-assurance runner not allowlisted |
 | 120 | `replay_detected` | PR number / `runId` differs from verifier context |
-| 130 | `privacy_violation` | raw / trace evidence on transparency-log; non-public on transparency-log; public extension |
-| 140 | `level_escalation` | policy-grade or high-assurance with local execution / `local-only` evidence / missing builder / missing high-assurance evidence |
+| 130 | `privacy_violation` | content-shaped evidence on transparency-log; non-public on transparency-log; public extension |
+| 140 | `level_escalation` | policy-grade or high-assurance with local execution / `local-only` evidence / missing builder / missing high-assurance evidence / `capture.method: manual` at high-assurance |
 | 150 | `level_below_required` | predicate level below `context.requiredLevel` |
-| 160 | `missing_evidence` | required trace / approval / witness / digest reference absent |
+| 160 | `missing_evidence` | required trace / approval / witness / agentConfig / MCP-server allowlist / delegation-step allowlist / digest reference absent or unverifiable |
 | 170 | `stale_attestation` | outside the configured freshness window, or `now` missing while window > 0 |
 | 180 | `policy_eval_error` | policy engine cannot evaluate deterministic inputs |
-| 190 | `cache_untrusted` | SQLite cache row conflicts with verified statement; cache is ignored |
+
+There is no `cache_untrusted` code — the verifier never consults the SQLite cache when deciding a result.
 
 > **Multi-code ordering** is verified separately from golden fixtures: each invalid golden has *exactly one* expected code. The ordering fixture lives at [`internal/verify/testdata/unsupported-version-subject-mismatch.json`](internal/verify/testdata/unsupported-version-subject-mismatch.json).
 
@@ -386,7 +388,7 @@ agentattest/
 │   └── agent-provenance-v1.cue             CUE cross-field semantics (v1)
 ├── policies/
 │   └── default.rego                         OPA Rego phase-04 policy
-├── tests/golden/                            ~30 fixtures · context.schema.json
+├── tests/golden/                            46 fixtures · context.schema.json
 │   ├── valid-minimal/   valid-github-ci/   valid-high-assurance/
 │   └── invalid-*/       (one expected failure code each)
 ├── docs/
@@ -434,10 +436,11 @@ Tracked in [`TASKS.md`](TASKS.md) with deterministic acceptance criteria — *"n
 
 | Milestone | Scope | Status |
 |---|---|---|
-| **v0 foundation** | Skeleton · predicate types · git binding · cache · in-toto assembly · Rego policy · golden harness · privacy gate | **shipped** — 33 golden fixtures pass |
+| **v0 foundation** | Skeleton · predicate types · git binding · cache · in-toto assembly · Rego policy · golden harness · privacy gate | **shipped** — 34 v0 golden fixtures pass |
 | **v0 signing** | `internal/signing`: DSSE + X.509 identity + trust-root chain + Sigstore/`gh attestation` bundle ingestion + RFC 6962 Rekor inclusion binding → verified context | **shipped** |
-| **v1 contract** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent` — binds the 2026 harness plane | **shipped in this upgrade** — 8 new golden fixtures pass |
+| **v1 contract** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent` — binds the 2026 harness plane | **shipped** — 12 v1 golden fixtures pass |
 | **v0.1 integration** | GitHub Action + `verify bundle` + `context`/`summary` CLI + harness capture SDK (`internal/capture`) + registry (`internal/registry`) | **shipped** |
+| **v0.1 release** | CI (fmt/vet/schema/CUE/Rego/golden + 3-OS `-race` + CLI smoke) · `version` + GoReleaser + release workflow · Sigstore TUF trust-root sourcing · contract hardening · [`SECURITY_REVIEW.md`](docs/SECURITY_REVIEW.md) | **shipped** — tagged `v0.1.0` |
 
 ---
 
@@ -445,8 +448,7 @@ Tracked in [`TASKS.md`](TASKS.md) with deterministic acceptance criteria — *"n
 
 These will trip you up if violated. They are enforced by code **and** by review.
 
-- `predicateType` is **exactly** `https://agentattest.dev/predicate/v0`.
-- `predicate.predicateVersion` is **exactly** `v0`. Unsupported versions are rejected in **phase 01**, before JSON Schema / CUE / Rego.
+- `predicateType` is **exactly** `https://agentattest.dev/predicate/v0` **or** `https://agentattest.dev/predicate/v1`, and `predicate.predicateVersion` matches it. Unsupported or inconsistent versions are rejected in **phase 01**, before JSON Schema / CUE / Rego.
 - Every predicate object has `additionalProperties: false`. `extensions` is URI-keyed but each value is a closed digest-addressed reference.
 - A schema change without a matching CUE update **and** a golden fixture update is a broken change.
 - Failure codes are stable strings; renaming them is a public-contract break.

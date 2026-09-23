@@ -19,9 +19,10 @@ import (
 //
 // It re-verifies the certificate chain and DSSE signature itself (via
 // VerifyWithTrustRoot), so the returned VerifiedContext is backed by the
-// supplied trust root rather than by anything self-asserted. Rekor inclusion
-// proofs are not checked here; pass a trust root you control and verify the
-// transparency log separately if you need it.
+// supplied trust root rather than by anything self-asserted. When the bundle
+// carries a tlogEntry, its RFC 6962 inclusion proof is verified and — if the
+// trust root pins a Rekor root hash — bound to that log root; with
+// TrustRoot.RequireInclusion a bundle without an inclusion proof is rejected.
 //
 // For output containing multiple attestations, the first dsseEnvelope with a
 // paired certificate chain is used; split multi-attestation output for full

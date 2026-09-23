@@ -14,7 +14,7 @@ It proves:
 - If signed, the statement payload was not modified after signing.
 - If unsigned, it proves only the local file contents and digests presented to the verifier.
 - The verifier can compare the statement subjects to current patch, tree, PR, or artifact digests.
-- The predicate conforms to the v0 schema and default privacy requirements.
+- The predicate conforms to the v0 or v1 schema and default privacy requirements.
 
 It does not prove:
 
@@ -35,7 +35,7 @@ It proves:
 - The verifier supplied signer, builder, workflow, issuer, repository, or certificate identity as explicit context and the default policy matched it to the predicate where applicable.
 - The statement subjects exactly match current patch, tree, PR, or artifact digests.
 - The repository URL and base commit match the current verification context.
-- The predicate is schema-valid and privacy-safe under structural v0 checks.
+- The predicate is schema-valid and privacy-safe under structural v0/v1 checks.
 - No evidence required for the claim is `local-only`.
 
 It does not prove:
@@ -91,7 +91,13 @@ The pipeline is identical for both predicate versions. Phase 01 accepts `predica
 | `https://agentattest.dev/predicate/v0` | `schemas/agent-provenance-v0.schema.json` | `#AgentProvenanceV0` |
 | `https://agentattest.dev/predicate/v1` | `schemas/agent-provenance-v1.schema.json` | `#AgentProvenanceV1` |
 
-An unknown `predicateType` fails with `predicate_type_mismatch`. Phases 02–05 and the failure-code vocabulary are shared; v1 adds no new failure codes. The default Rego policy applies v1-specific gates (agentConfig / MCP / delegation) only when the relevant verifier context is present, so v0 outcomes are byte-for-byte unchanged.
+An unknown `predicateType` fails with `predicate_type_mismatch`. Phases 02–05 and the failure-code vocabulary are shared; v1 adds no new failure codes. v0 outcomes are byte-for-byte unchanged.
+
+The default Rego policy applies the v1-specific gates (agentConfig / MCP servers / delegation) as follows:
+
+- **agentConfig digest:** checked whenever the verifier supplies `verifiedAgentConfig`; additionally required at high-assurance for every v1 predicate.
+- **MCP servers and delegation:** checked whenever the verifier supplies `verifiedMcpServers` / `verifiedDelegation`; at policy-grade and above, a v1 predicate that *declares* `mcpServers` or a `delegationChain` without the corresponding verified allowlist fails closed with `missing_evidence` instead of passing unverified. Every delegation step (not just the chain root) must be in the verified set.
+- **capture:** `capture.method: manual` is rejected at high-assurance, and high-assurance always requires bound trace evidence.
 
 ## Verification Inputs
 
@@ -115,23 +121,42 @@ The verifier should evaluate:
 | Failure | Meaning | Default Handling |
 |---|---|---|
 | `unsupported_statement_type` | `_type` is not in-toto Statement v1 | fail closed |
-| `predicate_type_mismatch` | `predicateType` is not `https://agentattest.dev/predicate/v0` | fail closed |
-| `unsupported_predicate_version` | `predicateVersion` is not `v0` | fail closed in phase 01 before JSON Schema, CUE, or policy evaluation |
+| `predicate_type_mismatch` | `predicateType` is neither `https://agentattest.dev/predicate/v0` nor `https://agentattest.dev/predicate/v1` | fail closed |
+| `unsupported_predicate_version` | `predicateVersion` is not `v0` or `v1`, or does not match `predicateType` | fail closed in phase 01 before JSON Schema, CUE, or policy evaluation |
 | `schema_invalid` | Predicate or golden context does not satisfy JSON Schema or CUE | fail closed |
-| `signature_invalid` | Envelope signature or certificate chain fails verification | fail closed for policy-grade and high-assurance |
-| `transparency_verification_failed` | Rekor, timestamp, bundle, or declared witness verification fails when required | fail closed when policy requires transparency or witnesses |
-| `subject_digest_mismatch` | Statement subjects and current subjects are not equal sets | fail closed |
-| `repo_url_mismatch` | Predicate repo URL differs from current verification context | fail closed |
-| `base_commit_mismatch` | Predicate base commit differs from current base commit | fail closed |
+| `signature_invalid` | Envelope signature or certificate chain fails verification (emitted as a structured result by `verify bundle`) | fail closed for policy-grade and high-assurance |
+| `transparency_verification_failed` | A declared witness is not backed by `context.verifiedWitnesses` | fail closed when policy requires witnesses |
+| `subject_digest_mismatch` | Statement subjects and `context.subjects` are not equal sets, no subjects were provided, or `context.subjects` contains duplicate names | fail closed |
+| `repo_url_mismatch` | Predicate repo URL differs from `context.repoUrl` | fail closed |
+| `base_commit_mismatch` | Predicate base commit differs from `context.baseCommit` | fail closed |
 | `signer_identity_mismatch` | Verified signer identity is missing or does not satisfy policy | fail closed |
 | `builder_identity_mismatch` | Verified builder/workflow/issuer identity is missing or does not satisfy policy | fail closed |
 | `replay_detected` | PR number, run ID, or another explicit replay context check indicates reuse in the wrong context | fail closed |
-| `privacy_violation` | Raw prompt/tool output, trace, extension, or transparency-log storage violates structural privacy rules | fail closed |
-| `level_escalation` | Predicate claims policy-grade or high-assurance with local-only evidence, local execution, missing builder, missing high-assurance witness, or wrong approval state | fail closed in phase 04 |
+| `privacy_violation` | Evidence or extension violates structural privacy rules — see PRIVACY_MODEL.md for the schema/CUE vs Rego split | fail closed |
+| `level_escalation` | Predicate claims policy-grade or high-assurance with local-only evidence, local execution, missing builder, missing high-assurance witness, wrong approval state, or `capture.method: manual` at high-assurance | fail closed in phase 04 |
 | `level_below_required` | Predicate `verificationLevel` is below `context.requiredLevel` | fail closed |
-| `missing_evidence` | Required trace, sidecar, approval, witness, or digest reference is absent | fail closed when required by level or policy |
-| `stale_attestation` | Statement predates the configured freshness window | fail closed when freshness is required |
+| `missing_evidence` | Required trace, sidecar, approval, witness, agentConfig, MCP-server allowlist, delegation-step allowlist, or digest reference is absent or unverifiable | fail closed when required by level or policy |
+| `stale_attestation` | Statement predates the configured freshness window, or a window is configured but `context.now` is missing | fail closed when freshness is required |
 | `policy_eval_error` | Policy engine cannot evaluate deterministic inputs | fail closed |
-| `cache_untrusted` | SQLite cache entry conflicts with verified statement or current context | ignore cache and verify from source |
+
+There is no `cache_untrusted` code: the verifier never consults the SQLite cache when deciding a result, so a cache conflict cannot produce a failure code — verification always runs from source.
 
 Default Rego emits structured deny objects with stable `code` values. Rego sets are unordered, so Go-side verifier code must deduplicate and apply the documented failure ordering before producing user-visible output. Multi-code ordering cases are not golden fixtures; `internal/verify/testdata/unsupported-version-subject-mismatch.json` covers `unsupported_predicate_version` before `subject_digest_mismatch`.
+
+## Trust Root Sourcing
+
+`agentattest verify bundle` resolves the trusted Fulcio root CA set in one of two ways:
+
+1. **Explicit** — `--trust-root ROOT.pem` supplies PEM certificate(s). This always wins and is the air-gapped path.
+2. **Sigstore TUF** — when `--trust-root` is omitted, the root is fetched from the Sigstore community TUF repository (`https://tuf-repo-cdn.sigstore.dev`) via `github.com/sigstore/sigstore-go/pkg/tuf`. The TUF root metadata is pinned by the copy embedded in that library, so the fetch is not trust-on-first-use; metadata and targets are hash-verified per the TUF specification. The metadata cache lives in `os.UserCacheDir()/agentattest/tuf`.
+
+Every failure mode — network unreachable, repository unavailable, malformed or missing `fulcio_v1.crt.pem` / `fulcio.crt.pem` target — fails closed with `signature_invalid` and a non-zero exit. The verifier never falls back to an unverified root.
+
+## Structured Output Of `verify bundle`
+
+`verify bundle` always writes a verifier result to stdout:
+
+- Success and policy failures: the standard `Result` JSON (`valid`, `level`, `failureCodes`).
+- Signature/chain/trust-root failures: `{"valid": false, "failureCodes": ["signature_invalid"]}` with the human-readable cause on stderr.
+
+File-not-found and flag errors remain plain `error:` messages on stderr with exit code 1/2 and no result JSON, since no verification was attempted.

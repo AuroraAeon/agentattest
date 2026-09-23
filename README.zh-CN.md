@@ -13,6 +13,7 @@
 [![schema](https://img.shields.io/badge/schema-JSON%20Schema%20%2B%20CUE-8b5cf6)]()
 [![policy](https://img.shields.io/badge/policy-OPA%2FRego-7d3aed)]()
 [![cache](https://img.shields.io/badge/cache-SQLite-003B57)]()
+[![ci](https://github.com/AuroraAeon/agentattest/actions/workflows/ci.yml/badge.svg)](https://github.com/AuroraAeon/agentattest/actions/workflows/ci.yml)
 
 </div>
 
@@ -20,7 +21,7 @@
 
 ## 一句话说清
 
-`agentattest` 把一次 AI 编程代理的运行记录**确定性绑定**到一个具体的 git patch、tree、PR 及审批状态上，输出一个 **in-toto Statement v1**，其 `predicateType` 严格等于 `https://agentattest.dev/predicate/v0`。
+`agentattest` 把一次 AI 编程代理的运行记录**确定性绑定**到一个具体的 git patch、tree、PR 及审批状态上，输出一个 **in-toto Statement v1**，其 `predicateType` 为 `https://agentattest.dev/predicate/v0`（或下方的 `v1` 超集）。
 
 **v1**（`https://agentattest.dev/predicate/v1`）在此基础上额外绑定 2026 年已固化成型的前沿 harness 层面——`AGENTS.md` 运行契约、带 schema 摘要的 MCP 工具/服务器身份、harness 原生采集、平台代理身份（如 GitHub Copilot coding agent）以及多代理委派。**v0 保持原样、稳定不变。** 详见 [`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md)。
 
@@ -136,6 +137,8 @@ go build ./cmd/agentattest
 go test ./...
 ```
 
+CI（`.github/workflows/ci.yml`）在每次 push 与 PR 上运行同样的门禁：`gofmt` / `go vet` / `go build`；契约门禁（JSON Schema + CUE + Rego + golden fixture——全部在 `go test` 内执行，无需外部工具）；以及在 Ubuntu、macOS、Windows 上运行完整 `-race` 测试。
+
 ### 在本仓库端到端跑一次
 
 ```bash
@@ -166,13 +169,14 @@ go test ./...
 
 | 命令 | 用途 |
 |---|---|
+| `agentattest version` \| `agentattest --version` | 打印构建信息（`version`、`commit`、`date`）JSON。 |
 | `agentattest init [--dir DIR]` | 创建 `.agentattest/`，内含 SQLite 缓存与 JSON 配置。缓存**只**存 refs / digests / timestamps，**绝不**存通过/失败判定。 |
 | `agentattest digest [--repo DIR]` | 计算仓库 URL、分支、base/head commit、patch SHA-256、变更文件 SHA-256。跨平台确定。 |
 | `agentattest predicate create [--repo DIR] [--out PATH] [--version v0\|v1] [--repo-url ...] [--base-commit ...] [--agent-name ...] [--agent-version ...]` | 构建 predicate + in-toto Statement v1，`subject[] = { patch.diff: sha256 }`。默认值：evidence-grade、本地执行、不存原始证据。`--version v1` 额外支持 `--capture-method wrapper\|ci-step\|manual`、`--capture-harness NAME`、`--agent-config PATH`（按摘要绑定 `AGENTS.md`）、`--model-provider P --model-id M`。 |
 | `agentattest verify predicate --statement PATH --context PATH` | 跑 5 阶段流水线，返回稳定 JSON `{ valid, level, failureCodes[] }`。 |
 | `agentattest context [--repo DIR] [--required-level ...]` | 从当前仓库产出验证器上下文 JSON（仓库 URL、base commit、patch subject、required level）。 |
 | `agentattest summary --statement PATH --context PATH` | 验证并打印确定性、隐私安全的 PR/检查摘要。 |
-| `agentattest verify bundle --bundle PATH --trust-root ROOT.pem [--repo DIR] [--required-level ...]` | 端到端验证 Sigstore / GitHub attestation bundle（链 → 身份 → 策略）到 policy-grade；fail-closed。 |
+| `agentattest verify bundle --bundle PATH [--trust-root ROOT.pem] [--repo DIR] [--required-level ...] [--require-inclusion] [--rekor-root HEX]` | 端到端验证 Sigstore / GitHub attestation bundle（链 → 身份 → 策略）到 policy-grade；fail-closed。省略 `--trust-root` 时经 TUF 获取 Sigstore 社区信任根；`--require-inclusion` 要求 Rekor 包含证明，`--rekor-root` 将其绑定到已知日志根。 |
 
 CLI 仅做参数路由，业务逻辑全部在 `internal/app`；`cmd/agentattest/main.go` 只有 6 行入口。
 
@@ -307,24 +311,25 @@ runner 白名单          —                   —                  必需
 | # | 失败码 | 含义 |
 |---|---|---|
 | 10  | `unsupported_statement_type` | `_type` 不是 in-toto Statement v1 |
-| 20  | `predicate_type_mismatch` | `predicateType` ≠ `https://agentattest.dev/predicate/v0` |
-| 30  | `unsupported_predicate_version` | `predicateVersion` ≠ `v0`（在 schema 之前被拒绝） |
+| 20  | `predicate_type_mismatch` | `predicateType` 既不是 `.../predicate/v0` 也不是 `.../predicate/v1` |
+| 30  | `unsupported_predicate_version` | `predicateVersion` 不是 `v0`/`v1`，或与 `predicateType` 不一致（在 schema 之前被拒绝） |
 | 40  | `schema_invalid` | JSON Schema 或 CUE 校验失败 |
-| 50  | `signature_invalid` | DSSE / Sigstore 信封签名失败 |
-| 60  | `transparency_verification_failed` | 必需的 Rekor / 时间戳 / witness 验证失败 |
-| 70  | `subject_digest_mismatch` | statement subjects ≠ context subjects（集合相等） |
+| 50  | `signature_invalid` | DSSE / Sigstore 信封签名、证书链或信任根失败（`verify bundle` 输出的结构化结果） |
+| 60  | `transparency_verification_failed` | 声明的 witness 没有得到 `context.verifiedWitnesses` 的背书 |
+| 70  | `subject_digest_mismatch` | statement subjects ≠ context subjects（集合相等）、未提供 subjects、或 context subjects 名称重复 |
 | 80  | `repo_url_mismatch` | predicate repo URL ≠ context repo URL |
 | 90  | `base_commit_mismatch` | predicate base commit ≠ context base commit |
 | 100 | `signer_identity_mismatch` | 已验证签名者缺失或 ≠ `agent.declaredIdentity` |
 | 110 | `builder_identity_mismatch` | 已验证 builder / workflow / issuer 缺失或不匹配；self-hosted 未显式开启；high-assurance runner 不在白名单 |
 | 120 | `replay_detected` | PR 号 / `runId` 与验证器上下文不一致 |
-| 130 | `privacy_violation` | 原始 / trace 证据写入透明日志；非 public 内容写入透明日志；存在 public extension |
-| 140 | `level_escalation` | policy-grade 或 high-assurance 搭配本地执行 / `local-only` 证据 / 缺少 builder / 缺少 high-assurance 证据 |
+| 130 | `privacy_violation` | 内容型证据写入透明日志；非 public 内容写入透明日志；存在 public extension |
+| 140 | `level_escalation` | policy-grade 或 high-assurance 搭配本地执行 / `local-only` 证据 / 缺少 builder / 缺少 high-assurance 证据 / high-assurance 使用 `capture.method: manual` |
 | 150 | `level_below_required` | predicate 等级低于 `context.requiredLevel` |
-| 160 | `missing_evidence` | 必需的 trace / approval / witness / 摘要引用缺失 |
+| 160 | `missing_evidence` | 必需的 trace / approval / witness / agentConfig / MCP server 白名单 / 委派链白名单 / 摘要引用缺失或不可验证 |
 | 170 | `stale_attestation` | 超出新鲜度窗口；或窗口 > 0 但 `now` 缺失 |
 | 180 | `policy_eval_error` | 策略引擎无法对确定性输入求值 |
-| 190 | `cache_untrusted` | SQLite 缓存行与已验证 statement 冲突——缓存被忽略 |
+
+不存在 `cache_untrusted` 失败码——验证器判定结果时从不查询 SQLite 缓存。
 
 > **多失败码排序**与 golden fixture 分开验证：每个 invalid golden 只期望**一个**失败码。多码排序的 fixture 位于 [`internal/verify/testdata/unsupported-version-subject-mismatch.json`](internal/verify/testdata/unsupported-version-subject-mismatch.json)。
 
@@ -428,10 +433,11 @@ agentattest/
 
 | 里程碑 | 范围 | 状态 |
 |---|---|---|
-| **v0 基础** | 骨架 · 谓词类型 · git 绑定 · 缓存 · in-toto 组装 · Rego 策略 · Golden 测试套 · 隐私门 | **已交付**——33 个 golden fixture 通过 |
+| **v0 基础** | 骨架 · 谓词类型 · git 绑定 · 缓存 · in-toto 组装 · Rego 策略 · Golden 测试套 · 隐私门 | **已交付**——34 个 v0 golden fixture 通过 |
 | **v0 签名** | `internal/signing`：DSSE + X.509 身份 + 信任根链校验 + Sigstore/`gh attestation` bundle 摄取 + RFC 6962 Rekor 包含证明绑定 → 已验证上下文 | **已交付** |
-| **v1 契约** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent`——绑定 2026 harness 层面 | **本次升级已交付**——8 个新 golden fixture 通过 |
+| **v1 契约** | `agentConfig` · `mcpServers`/`tools` · `delegation` · `capture` · `platform-agent`——绑定 2026 harness 层面 | **已交付**——12 个 v1 golden fixture 通过 |
 | **v0.1 集成** | GitHub Action + `verify bundle` + `context`/`summary` CLI + harness 采集 SDK（`internal/capture`）+ registry（`internal/registry`） | **已交付** |
+| **v0.1 发布** | CI（fmt/vet/schema/CUE/Rego/golden + 三平台 `-race` + CLI smoke）· `version` + GoReleaser + 发布工作流 · Sigstore TUF 信任根获取 · 契约加固 · [`SECURITY_REVIEW.md`](docs/SECURITY_REVIEW.md) | **已交付**——已打 tag `v0.1.0` |
 
 ---
 
@@ -439,8 +445,7 @@ agentattest/
 
 以下不变量由代码**与**评审双重强制——任一违反即为破坏性变更。
 
-- `predicateType` **严格等于** `https://agentattest.dev/predicate/v0`。
-- `predicate.predicateVersion` **严格等于** `v0`。不支持的版本在**阶段 01**被拒——早于 JSON Schema / CUE / Rego。
+- `predicateType` **严格等于** `https://agentattest.dev/predicate/v0` **或** `https://agentattest.dev/predicate/v1`，且 `predicate.predicateVersion` 与之一致。不支持或不一致的版本在**阶段 01**被拒——早于 JSON Schema / CUE / Rego。
 - 所有 predicate 对象 `additionalProperties: false`。`extensions` 虽为 URI 键控，但每个值都是 closed 的 digest-addressed 引用。
 - 修改 schema 而不同步修改 CUE **且**不更新 golden fixture，即视为破坏性变更。
 - 失败码是稳定字符串；改名即破坏公共契约。

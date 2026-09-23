@@ -1,6 +1,6 @@
 # Architecture
 
-`agentattest` is a binding and verification layer. It connects an AI coding-agent run to a git patch, tree, pull request, build artifact, and human approval state by producing an in-toto Statement v1 with the custom predicate `https://agentattest.dev/predicate/v0`.
+`agentattest` is a binding and verification layer. It connects an AI coding-agent run to a git patch, tree, pull request, build artifact, and human approval state by producing an in-toto Statement v1 with the custom predicate `https://agentattest.dev/predicate/v0` (or the `v1` superset).
 
 It must stay thin. Cryptographic signing, transparency logs, artifact attestation distribution, runtime tracing, SBOMs, VEX, and policy engines are reused from existing ecosystems.
 
@@ -26,7 +26,7 @@ Future implementation should keep these boundaries stable.
 | `internal/gitbind` | repo URL normalization, base commit checks, patch/tree/artifact digest calculation | signing, policy, trace parsing |
 | `internal/predicate` | Go representation and validation of `https://agentattest.dev/predicate/v0` | in-toto envelope verification, policy decisions |
 | `internal/statement` | in-toto Statement v1 assembly and parsing | custom crypto, privacy redaction |
-| `internal/signing` | adapters for DSSE, Sigstore/cosign, Fulcio/Rekor bundles, GitHub attestation verification | predicate mutation, git digest calculation |
+| `internal/signing` | adapters for DSSE, Sigstore/cosign, Fulcio/Rekor bundles, GitHub attestation verification, Sigstore TUF trust-root sourcing | predicate mutation, git digest calculation |
 | `internal/verify` | verification pipeline and failure mapping | raw prompt capture, signing implementation |
 | `internal/policy` | Rego/CUE input shaping and evaluation | network access, git operations |
 | `internal/privacy` | field classification, redaction, public-log safety checks | signing, policy engine implementation |

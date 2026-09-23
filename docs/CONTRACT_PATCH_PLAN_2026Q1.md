@@ -1,3 +1,14 @@
+# Contract Patch Plan (hostile review, 2026-Q1) — STATUS: fully applied in v0.1.0
+
+> Every blocker (B1–B7), high-priority fix (H1–H8), schema fix (S1–S16), policy fix
+> (P1–P13), and fixture addition listed below has been implemented. This document is
+> kept as the audit trail for the v0.1.0 contract hardening; the live contracts are
+> `schemas/agent-provenance-v1.schema.json` + `.cue` and `policies/default.rego`, and
+> the current security posture is documented in [`SECURITY_REVIEW.md`](./SECURITY_REVIEW.md).
+> Notable v0.1.0 deltas beyond this plan: transparency-log evidence moved from a
+> type blacklist to a metadata-only allowlist; v1 mcpServers/delegation gates fail
+> closed when declared without verified context; delegation is validated per step.
+
 Reviewed the contract pack against AGENTS.md, ARCHITECTURE.md, all `docs/*`, both schema files, `policies/default.rego`, and `tests/golden/README.md`. Hostile review below — minimal-patch oriented, no rewrites, no custom crypto, no replacement of in-toto/DSSE/Sigstore/OTel.
 
 ## 1. Critical blockers (must fix before implementation starts)

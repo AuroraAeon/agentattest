@@ -65,16 +65,23 @@ Public transparency logs are not appropriate for:
 - Personal data that conflicts with deletion, correction, or minimization obligations.
 - Private source code excerpts beyond digest-addressed subjects.
 
-For v0, a predicate is structurally safe for public-log payloads only if all of these hold:
+For v0 and v1, a predicate is structurally safe for public-log payloads only if all of these hold:
 
-- No `raw-prompt-ref`, `raw-tool-output-ref`, or `trace` evidence uses `storage: "transparency-log"`.
+- No evidence type outside the transparency-log allowlist uses `storage: "transparency-log"`. The allowlist is metadata-shaped entries only: `local-log-root`, `builder-record`, `agent-config`, `mcp-server`. Everything else — `trace`, `tool-summary`, `test-result`, `approval`, `raw-prompt-ref`, `raw-tool-output-ref` — is denied by default, because those types can carry prompt, tool, trace, review, or test content.
 - Any evidence with `storage: "transparency-log"` has `visibility: "public"`.
 - `privacy.publicTransparencyLog.includesRawContent` is `false`.
 - `extensions` is absent or every extension value is a constrained digest-addressed reference with non-public visibility.
-- `agent.declaredIdentity` and `humanApproval.reviewerRefs[]` match the constrained non-PII patterns.
+- `agent.declaredIdentity`, `humanApproval.reviewerRefs[]`, `mcpServers[].name`, and `tools[].name` match the constrained non-PII patterns.
 - No URI field uses `data:` or HTTP(S) userinfo.
 
-The verifier computes these structural checks and emits `privacy_violation` when they fail. It does not prove the referenced artifact contents are free of secrets.
+These checks are enforced at two layers, and the emitted failure code differs by layer:
+
+| Check | Layer | Code on failure |
+|---|---|---|
+| transparency-log type allowlist; transparency-log evidence must be `public`; extensions must not be public | Rego (`policies/default.rego`) | `privacy_violation` |
+| `includesRawContent` is the literal `false`; raw-evidence visibility coupling; `data:`/userinfo URI rejection; non-PII name/identity/reviewer patterns; inline extension blobs | JSON Schema + CUE | `schema_invalid` |
+
+The verifier computes these structural checks and fails closed when they fail. It does not scan the referenced artifact contents, so it does not prove those artifacts are free of secrets — only that no raw or content-shaped evidence is *structurally* placed on a public log.
 
 ## GDPR-Oriented Minimization
 

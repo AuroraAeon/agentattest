@@ -13,15 +13,17 @@ now load-bearing, and the predicate model has been extended to **v1** to bind th
 
 | Area | State |
 |---|---|
-| v0 predicate contract (JSON Schema + CUE + Rego) | **shipped** — 33 golden fixtures pass |
+| v0 predicate contract (JSON Schema + CUE + Rego) | **shipped** — 34 v0 golden fixtures pass |
 | v0 verifier pipeline (phase 01–05, failure ordering) | **shipped** — `internal/verify` |
 | Deterministic git binding | **shipped** — `internal/gitbind` |
 | SQLite cache (refs/digests/timestamps, no pass/fail) | **shipped** — `internal/cache` |
 | Privacy gate (structural, schema + Rego) | **shipped** |
-| **v1 predicate contract** (agentConfig, MCP, delegation, capture, platform-agent) | **shipped in this upgrade** — 8 new golden fixtures pass |
+| **v1 predicate contract** (agentConfig, MCP, delegation, capture, platform-agent) | **shipped** — 12 v1 golden fixtures pass |
 | DSSE signing + identity adapter (`internal/signing`) | **shipped** — DSSE `Sign`/`Verify`, X.509 SAN/Fulcio-issuer identity, trust-root chain verification, Sigstore/`gh attestation` bundle ingestion, and RFC 6962 Rekor inclusion-proof binding |
 | GitHub Action + attestation verification + PR summary | **shipped** — `action/`, `verify bundle`, `summary`, `context` |
 | CI (fmt/vet/schema/CUE/Rego/golden + 3-OS `-race` matrix) | **shipped** — `.github/workflows/ci.yml` |
+| Release pipeline (`version` + goreleaser + release workflow + CHANGELOG) | **shipped** — `v0.1.0` tagged |
+| Sigstore TUF trust-root sourcing (`verify bundle` without `--trust-root`) | **shipped** — `internal/signing/trustroot.go` |
 | Harness capture SDK (`internal/capture`) | **shipped** — harness-native v1 capture, no raw content |
 | Registry / discovery (`internal/registry`) | **shipped** — read-only, opt-in index; never a trust root |
 
@@ -66,12 +68,14 @@ Acceptance criteria:
 - Tampered statement payloads are rejected.
 - Verification produces the `context.verifiedSigner` / `verifiedBuilderId` / `verifiedWorkflowRef` /
   `verifiedIssuer` / `verifiedWitnesses` / `verifiedApprovalDigest` fields the default policy reads.
-- Platform-agent signers (e.g. GitHub Copilot coding agent bot identity + issuer) are recognized as
-  a first-class verified-signer category for the `platform-agent` builder type.
+- Platform-agent signers (e.g. GitHub Copilot coding agent bot identity + issuer) are handled by the
+  same generic identity extraction as every other signer — the certificate SAN becomes
+  `verifiedSigner` and the Fulcio OIDC extension becomes `verifiedIssuer` — and the `platform-agent`
+  builder type is a first-class schema/CUE/policy category pinned by `valid-v1-platform-agent`.
 
 Shipped in `internal/signing`: `Sign` wraps a statement payload in a DSSE envelope via a caller-supplied `crypto.Signer` (secure-systems-lab/go-securesystemslib — no custom crypto); `Verify` verifies the envelope against trusted signer certificates, rejects tampering / missing signatures / wrong keys, and extracts `verifiedSigner` / `verifiedBuilderId` / `verifiedWorkflowRef` / `verifiedIssuer` from the certificate SAN and the Fulcio OIDC extension (`1.3.6.1.4.1.57264.1.1`). `VerifyWithTrustRoot` additionally verifies the leaf certificate chains to a configurable trust root (the Fulcio root CAs) with an optional OIDC-issuer allowlist, and `ParseCertificates` ingests the PEM certificate chain cosign / `gh attestation` expose. Offline tests cover the round trip, identity extraction, trust-root chain verification (accept / untrusted-root / disallowed-issuer / expired-leaf), and fail-closed cases, plus an end-to-end signed policy-grade v1 statement that verifies.
 
-Remaining (next layer): Rekor inclusion-proof verification, and sourcing the trust root (via Sigstore TUF) and the leaf certificate from real Sigstore/cosign bundles and `gh attestation` output.
+Remaining (next layer): none. Rekor inclusion-proof verification shipped (`VerifyInclusion`, bound via `FromSigstoreBundle` with `--require-inclusion` / `--rekor-root`), and the trust root is either supplied explicitly (`--trust-root`) or sourced from the Sigstore community TUF repository (`LoadTrustRoot`).
 
 ### 8. Default Rego policy — DONE
 `policies/default.rego`: repo/base/subject-set equality, required level, verified identity, level
@@ -80,7 +84,7 @@ v1 agentConfig/MCP/delegation gates. Acceptance: each rule has a golden fixture 
 
 ### 9. Golden test harness — DONE
 `internal/verify/golden_test.go` runs every `tests/golden/*` fixture; invalid fixtures pin exactly
-one code; multi-code ordering lives in Go testdata. Acceptance: 41 fixtures stable across runs.
+one code; multi-code ordering lives in Go testdata. Acceptance: 46 fixtures stable across runs (34 v0 + 12 v1).
 
 ### 10. Privacy gate — DONE
 Structural privacy enforced jointly by JSON Schema, CUE, and Rego. Acceptance: public-log blocked
@@ -122,7 +126,7 @@ patch/tree/artifact; sign via GitHub OIDC/Sigstore; run the verifier; emit a che
 closed. Acceptance: matches original task 11 criteria plus a `platform-agent` example workflow.
 
 ### 16. GitHub attestation verification path — SHIPPED
-`internal/signing.FromSigstoreBundle` consumes a Sigstore bundle or `gh attestation verify --format json` output: it pairs the `dsseEnvelope` with its x509 certificate chain, re-verifies the chain against a trusted root (`VerifyWithTrustRoot`), and returns verified context + the decoded statement. `agentattest verify bundle --bundle PATH --trust-root ROOT.pem` runs the full gate to policy-grade. Acceptance met: verified certificate/workflow identity (not user-controlled predicate fields) drives the policy — a self-asserted `declaredIdentity` that disagrees fails with `signer_identity_mismatch` (tested). Rekor inclusion proofs remain the next layer.
+`internal/signing.FromSigstoreBundle` consumes a Sigstore bundle or `gh attestation verify --format json` output: it pairs the `dsseEnvelope` with its x509 certificate chain, re-verifies the chain against a trusted root (`VerifyWithTrustRoot`), and returns verified context + the decoded statement. `agentattest verify bundle --bundle PATH [--trust-root ROOT.pem]` runs the full gate to policy-grade; without `--trust-root` the Sigstore community root is fetched via TUF. Acceptance met: verified certificate/workflow identity (not user-controlled predicate fields) drives the policy — a self-asserted `declaredIdentity` that disagrees fails with `signer_identity_mismatch` (tested). Rekor inclusion proofs are verified when present and required via `--require-inclusion`.
 
 ### 17. PR summary output — DONE
 `agentattest summary` (internal/app `renderSummary`) emits a deterministic Markdown summary: result, level, subject digest prefixes, repo/base match, verified signer/builder/issuer (from context), privacy presence flags, and v1 `capture`. Never includes raw prompts/tool outputs/traces/secrets. Acceptance: deterministic (tested), privacy-safe, wired into the GitHub Action.
@@ -133,12 +137,18 @@ closed. Acceptance: matches original task 11 criteria plus a `platform-agent` ex
 ### 19. Registry / discovery — SHIPPED (still non-goal for v0/v1 cores)
 `internal/registry` is a read-only, opt-in SQLite index mapping subject digest / repo URL / runId to statement refs. It stores references and non-raw metadata, never pass/fail decisions, and is never a trust root.
 
-### 20. Release & compatibility contract — ONGOING
+### 20. Release & compatibility contract — SHIPPED (v0.1.0)
 Every schema change updates `docs/DATA_MODEL.md`, the CUE file, and ≥1 golden fixture. `AGENTS.md`,
 `ARCHITECTURE.md`, `docs/*`, `schemas/*`, `policies/*`, and `tests/golden/*` stay consistent. A
-compatibility suite (all goldens) is part of CI.
+compatibility suite (all goldens) is part of CI (`.github/workflows/ci.yml`). Release automation
+ships: `agentattest version` with ldflags injection, `.goreleaser.yaml`, tag-triggered
+`.github/workflows/release.yml`, and `CHANGELOG.md`. Tag `v0.1.0` is cut.
 
-### 21. Security review checklist — ONGOING
-No custom crypto; signing only in `internal/signing`; no default raw storage; no public-log raw
-content; policy-grade/high-assurance reject local-only evidence; v1 gates fail closed; failure modes
-documented and tested.
+### 21. Security review checklist — SHIPPED (evidence in `docs/SECURITY_REVIEW.md`)
+No custom crypto; signing only in `internal/signing` (machine-enforced by
+`internal/signing/boundary_test.go`); no default raw storage; no public-log raw content;
+policy-grade/high-assurance reject local-only evidence; v1 gates fail closed; failure modes
+documented and tested. The review closed the gaps found during the v0.1.0 audit: the hand-rolled
+RFC 6962 hasher was replaced by `rfc6962.DefaultHasher`, `signature_invalid` is now a structured
+result, the `cache_untrusted` ghost code was removed, and the v1 mcpServers/delegation/capture
+gates fail closed when declared without verified context.

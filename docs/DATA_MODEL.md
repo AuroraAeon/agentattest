@@ -79,6 +79,8 @@ The verifier must compare statement subjects to locally computed or CI-provided 
 
 `environment.executionType` identifies whether capture happened locally, in GitHub Actions, another CI system, an isolated runner, or a witnessed runner. Policy-grade and high-assurance claims require verified non-local builder identity from verifier context, not only the self-asserted `environment.builder` field.
 
+`environment.witnesses[]` lists transparency-log or timestamp-authority witnesses by `id`, `type`, `digest`, and optional `uri`. High-assurance requires at least one witness, and every declared witness must be backed by `context.verifiedWitnesses` (matching `type` and digest) — a self-asserted witness object alone fails with `transparency_verification_failed`.
+
 `humanApproval.state` records approval state. It does not replace branch protection, CODEOWNERS, or platform review enforcement. High-assurance requires digest-addressed approval evidence plus `context.verifiedApproval=true` and `context.verifiedApprovalDigest` matching the approval evidence digest. Those context fields are derived out of band by the verifier.
 
 `privacy.rawPrompt` and `privacy.rawToolOutputs` default to not stored. If raw evidence is explicitly stored, it must not be public and should be encrypted or access-controlled.
@@ -113,10 +115,11 @@ These are **self-asserted** like `agent`/`model`. Trust still comes from verifie
 
 - **High-assurance v1** requires a bound `agentConfig` (fails with `missing_evidence`).
 - When the verifier supplies `context.verifiedAgentConfig`, the declared `agentConfig.primaryDigest` must match it (`missing_evidence`).
-- When the verifier supplies `context.verifiedMcpServers` (an allowlist), every declared `mcpServers[].digest` must appear in it (`missing_evidence`).
-- When the verifier supplies `context.verifiedDelegation`, the `delegationChain` root `agentRef` must appear in it (`missing_evidence`).
+- When the verifier supplies `context.verifiedMcpServers` (an allowlist), every declared `mcpServers[].digest` must appear in it (`missing_evidence`). At policy-grade and above, a declared `mcpServers` list without a verified allowlist also fails closed.
+- When the verifier supplies `context.verifiedDelegation`, **every** `delegationChain` step's `agentRef` must appear in it (`missing_evidence`). At policy-grade and above, a declared chain without a verified allowlist also fails closed.
+- High-assurance requires bound `trace` evidence and rejects `capture.method: manual` (`missing_evidence` / `level_escalation`).
 
-No raw prompts, tool outputs, or trace payloads are ever stored; MCP / tool binding is digest-only. See [`PRIVACY_MODEL.md`](./PRIVACY_MODEL.md).
+No raw prompts, tool outputs, or trace payloads are ever stored; MCP / tool binding is digest-only. `mcpServers[].name` and `tools[].name` are constrained to a non-PII pattern. See [`PRIVACY_MODEL.md`](./PRIVACY_MODEL.md).
 
 Generate a v1 statement from the CLI with
 `agentattest predicate create --version v1 [--capture-method wrapper|ci-step|manual] [--capture-harness NAME] [--agent-config PATH] [--model-provider P --model-id M]`.
