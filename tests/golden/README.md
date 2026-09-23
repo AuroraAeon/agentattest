@@ -130,6 +130,12 @@ Expected result: invalid with `level_escalation`.
 | `invalid-timestamp-order` | `schema_invalid` |
 | `invalid-repo-url-mismatch` | `repo_url_mismatch` |
 | `invalid-base-commit-mismatch` | `base_commit_mismatch` |
+| `invalid-tool-summary-on-transparency-log` | `privacy_violation` |
+| `invalid-high-assurance-no-trace` | `missing_evidence` |
+| `invalid-high-assurance-manual-capture` | `level_escalation` |
+| `invalid-v1-mcp-unverified` | `missing_evidence` |
+| `invalid-v1-delegation-unverified-step` | `missing_evidence` |
+| `invalid-v1-mcp-name-pii` | `schema_invalid` |
 
 ## v1 Fixtures
 

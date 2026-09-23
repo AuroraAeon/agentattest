@@ -99,7 +99,7 @@ package schemas
 })
 
 #McpServer: close({
-	name:           string & =~"^.{1,128}$"
+	name:           string & =~"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
 	version?:       string & =~"^.{1,64}$"
 	transport:      "stdio" | "streamable-http" | "sse"
 	serverIdentity?: string & =~"^.{1,512}$"
@@ -107,7 +107,7 @@ package schemas
 })
 
 #Tool: close({
-	name:         string & =~"^.{1,128}$"
+	name:         string & =~"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
 	server?:      string & =~"^.{1,128}$"
 	schemaDigest: #Digest
 })

@@ -1,0 +1,63 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "patch.diff",
+      "digest": {
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  ],
+  "predicateType": "https://agentattest.dev/predicate/v0",
+  "predicate": {
+    "predicateVersion": "v0",
+    "runId": "run_01HTYJ7B4A3H8M0S8P7M2N9Q",
+    "verificationLevel": "evidence-grade",
+    "repo": {
+      "url": "https://github.com/example/agentattest",
+      "baseCommit": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "agent": {
+      "name": "example-agent",
+      "version": "1.0.0",
+      "invocationKind": "local-cli"
+    },
+    "environment": {
+      "executionType": "local"
+    },
+    "humanApproval": {
+      "state": "none"
+    },
+    "privacy": {
+      "redactionPolicy": "default-minimal-v0",
+      "rawPrompt": {
+        "stored": false,
+        "visibility": "none"
+      },
+      "rawToolOutputs": {
+        "stored": false,
+        "visibility": "none"
+      },
+      "publicTransparencyLog": {
+        "allowed": true,
+        "includesRawContent": false
+      }
+    },
+    "timestamps": {
+      "startedAt": "2026-04-27T09:12:31Z",
+      "finishedAt": "2026-04-27T09:16:42Z"
+    },
+    "evidence": [
+      {
+        "type": "tool-summary",
+        "uri": "artifact://agentattest/traces/trace.otel.json",
+        "digest": {
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "mediaType": "application/json",
+        "storage": "transparency-log",
+        "visibility": "public"
+      }
+    ]
+  }
+}

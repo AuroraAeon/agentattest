@@ -3,17 +3,32 @@
   "baseCommit": "0123456789abcdef0123456789abcdef01234567",
   "requiredLevel": "policy-grade",
   "subjects": [
-    { "name": "patch.diff", "algorithm": "sha256", "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
-    { "name": "repo-tree", "algorithm": "sha256", "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+    {
+      "name": "patch.diff",
+      "algorithm": "sha256",
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "repo-tree",
+      "algorithm": "sha256",
+      "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
   ],
   "verifiedSigner": "sigstore:github:example-agent",
   "verifiedBuilderId": "https://github.com/example/agentattest/.github/workflows/agentattest.yml@refs/heads/main",
   "verifiedWorkflowRef": "https://github.com/example/agentattest/.github/workflows/agentattest.yml@refs/heads/main",
   "verifiedIssuer": "https://token.actions.githubusercontent.com",
-  "verifiedAgentConfig": { "sha256": "1111111111111111111111111111111111111111111111111111111111111111" },
+  "verifiedAgentConfig": {
+    "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
   "verifiedMcpServers": [
-    { "sha256": "2222222222222222222222222222222222222222222222222222222222222222" }
+    {
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+    }
   ],
-  "verifiedDelegation": ["planner-agent", "worker-agent"],
+  "verifiedDelegation": [
+    "planner-agent",
+    "worker-agent"
+  ],
   "allowSelfHostedRunners": false
 }

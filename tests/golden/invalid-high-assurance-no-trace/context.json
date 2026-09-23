@@ -1,0 +1,40 @@
+{
+  "repoUrl": "https://github.com/example/agentattest",
+  "baseCommit": "0123456789abcdef0123456789abcdef01234567",
+  "requiredLevel": "high-assurance",
+  "subjects": [
+    {
+      "name": "patch.diff",
+      "algorithm": "sha256",
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "repo-tree",
+      "algorithm": "sha256",
+      "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "verifiedSigner": "sigstore:github:example-agent",
+  "verifiedBuilderId": "isolated-runner-prod-1",
+  "verifiedWorkflowRef": "isolated-workflow-prod",
+  "verifiedIssuer": "https://issuer.example/isolated-runner",
+  "verifiedApproval": true,
+  "verifiedApprovalDigest": {
+    "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "verifiedWitnesses": [
+    {
+      "type": "transparency-log",
+      "digest": {
+        "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    }
+  ],
+  "allowedIsolatedRunners": [
+    "isolated-runner-prod-1"
+  ],
+  "expectedPullRequestNumber": 123,
+  "expectedRunId": "run_01HTYJ7B4A3H8M0S8P7M2N9Q",
+  "freshnessWindowSeconds": 86400,
+  "now": "2026-04-28T09:16:42Z"
+}

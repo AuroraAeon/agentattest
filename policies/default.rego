@@ -5,7 +5,10 @@ import rego.v1
 default allow := false
 
 level_rank := {"evidence-grade": 0, "policy-grade": 1, "high-assurance": 2}
-transparency_forbidden_types := {"trace", "raw-prompt-ref", "raw-tool-output-ref"}
+# Evidence types that may be written to a public transparency log. Only
+# metadata-shaped entries (hashes, digests, build records) are allowlisted;
+# anything that can carry prompt/tool/trace/test content is denied by default.
+transparency_allowed_types := {"local-log-root", "builder-record", "agent-config", "mcp-server"}
 
 statement := object.get(input, "statement", {})
 context := object.get(input, "context", {})
@@ -69,8 +72,8 @@ deny contains {"code": "subject_digest_mismatch", "message": sprintf("unexpected
 
 deny contains {"code": "privacy_violation", "message": sprintf("%s evidence must not be written to a transparency log", [evidence.type])} if {
 	some evidence in evidence_refs
-	evidence.type in transparency_forbidden_types
 	evidence.storage == "transparency-log"
+	not evidence.type in transparency_allowed_types
 }
 
 deny contains {"code": "privacy_violation", "message": "non-public evidence must not use transparency-log storage"} if {
@@ -230,6 +233,13 @@ deny contains {"code": "missing_evidence", "message": "declared agent config dig
 	declared != verified
 }
 
+deny contains {"code": "missing_evidence", "message": "declared mcpServers are not verifier-allowlisted"} if {
+	policy_or_higher
+	object.get(predicate, "predicateVersion", "") == "v1"
+	count(object.get(predicate, "mcpServers", [])) > 0
+	count(object.get(context, "verifiedMcpServers", [])) == 0
+}
+
 deny contains {"code": "missing_evidence", "message": sprintf("mcp server %q is not in the verified allowlist", [server.name])} if {
 	verified_servers := object.get(context, "verifiedMcpServers", [])
 	count(verified_servers) > 0
@@ -237,12 +247,30 @@ deny contains {"code": "missing_evidence", "message": sprintf("mcp server %q is 
 	not mcp_server_verified(server, verified_servers)
 }
 
-deny contains {"code": "missing_evidence", "message": "delegation chain root is not in the verified delegation set"} if {
+deny contains {"code": "missing_evidence", "message": "declared delegation chain is not verifier-allowlisted"} if {
+	policy_or_higher
+	object.get(predicate, "predicateVersion", "") == "v1"
+	chain := object.get(object.get(predicate, "delegation", {}), "delegationChain", [])
+	count(chain) > 0
+	count(object.get(context, "verifiedDelegation", [])) == 0
+}
+
+deny contains {"code": "missing_evidence", "message": sprintf("delegation step %q is not in the verified delegation set", [step.agentRef])} if {
 	verified_delegation := object.get(context, "verifiedDelegation", [])
 	count(verified_delegation) > 0
 	chain := object.get(object.get(predicate, "delegation", {}), "delegationChain", [])
-	count(chain) > 0
-	not array_contains(verified_delegation, chain[0].agentRef)
+	some step in chain
+	not array_contains(verified_delegation, step.agentRef)
+}
+
+deny contains {"code": "missing_evidence", "message": "high-assurance requires bound trace evidence"} if {
+	level == "high-assurance"
+	not has_evidence_type("trace")
+}
+
+deny contains {"code": "level_escalation", "message": "high-assurance cannot rely on manually captured statements"} if {
+	level == "high-assurance"
+	object.get(object.get(predicate, "capture", {}), "method", "") == "manual"
 }
 
 policy_or_higher if {

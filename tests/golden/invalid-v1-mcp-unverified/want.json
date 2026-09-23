@@ -1,0 +1,7 @@
+{
+  "valid": false,
+  "level": "policy-grade",
+  "failureCodes": [
+    "missing_evidence"
+  ]
+}
