@@ -1,0 +1,12 @@
+# build output
+/agentattest
+/agentattest.exe
+/dist/
+
+# local cache + config created by `agentattest init`
+.agentattest/
+
+# editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp

@@ -27,6 +27,8 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	ctx := context.Background()
 	var err error
 	switch args[0] {
+	case "version", "--version", "-v":
+		err = runVersion(stdout)
 	case "init":
 		err = runInit(ctx, args[1:], stdout)
 	case "digest":
@@ -239,6 +241,7 @@ func writeJSON(w io.Writer, value any) error {
 
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "usage:")
+	fmt.Fprintln(w, "  agentattest version | --version")
 	fmt.Fprintln(w, "  agentattest init [--dir DIR]")
 	fmt.Fprintln(w, "  agentattest digest [--repo DIR]")
 	fmt.Fprintln(w, "  agentattest context [--repo DIR] [--required-level evidence-grade|policy-grade|high-assurance]")

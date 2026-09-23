@@ -1,0 +1,50 @@
+# GoReleaser v2 configuration.
+# Releases are produced by .github/workflows/release.yml on `v*` tags; the same
+# file works locally via `goreleaser release --snapshot --clean`.
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: agentattest
+    main: ./cmd/agentattest
+    binary: agentattest
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+        -X agentattest.dev/agentattest/internal/app.version={{.Version}}
+        -X agentattest.dev/agentattest/internal/app.commit={{.Commit}}
+        -X agentattest.dev/agentattest/internal/app.date={{.Date}}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: agentattest
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
