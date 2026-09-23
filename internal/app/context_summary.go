@@ -221,7 +221,7 @@ func runVerifyBundle(ctx context.Context, args []string, stdout, stderr io.Write
 	fs := flag.NewFlagSet("verify bundle", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	bundle := fs.String("bundle", "", "Sigstore bundle or gh attestation verify JSON path")
-	trustRoot := fs.String("trust-root", "", "PEM file with trusted root CA certificate(s)")
+	trustRoot := fs.String("trust-root", "", "PEM file with trusted root CA certificate(s); when omitted, the Sigstore community root is fetched via TUF")
 	repo := fs.String("repo", ".", "repository directory")
 	requiredLevel := fs.String("required-level", "policy-grade", "minimum verification level")
 	requireInclusion := fs.Bool("require-inclusion", false, "fail closed if the bundle has no Rekor inclusion proof")
@@ -230,8 +230,8 @@ func runVerifyBundle(ctx context.Context, args []string, stdout, stderr io.Write
 		fmt.Fprintln(stderr, "error:", err)
 		return 2
 	}
-	if *bundle == "" || *trustRoot == "" {
-		fmt.Fprintln(stderr, "error: --bundle and --trust-root are required")
+	if *bundle == "" {
+		fmt.Fprintln(stderr, "error: --bundle is required (--trust-root is optional; omit it to use the Sigstore community root via TUF)")
 		return 2
 	}
 
@@ -240,15 +240,17 @@ func runVerifyBundle(ctx context.Context, args []string, stdout, stderr io.Write
 		fmt.Fprintln(stderr, "error:", err)
 		return 1
 	}
-	trustPEM, err := os.ReadFile(*trustRoot)
-	if err != nil {
-		fmt.Fprintln(stderr, "error:", err)
-		return 1
+	var trustPEM []byte
+	if *trustRoot != "" {
+		trustPEM, err = os.ReadFile(*trustRoot)
+		if err != nil {
+			fmt.Fprintln(stderr, "error:", err)
+			return 1
+		}
 	}
-	roots, err := signing.ParseCertificates(trustPEM)
+	roots, err := signing.LoadTrustRoot(ctx, signing.TrustRootOptions{ExplicitPEM: trustPEM})
 	if err != nil {
-		fmt.Fprintln(stderr, "error: parse trust root:", err)
-		return 1
+		return signatureFailure(stdout, stderr, fmt.Errorf("load trust root: %w", err))
 	}
 
 	trust := signing.TrustRoot{Roots: roots, RequireInclusion: *requireInclusion}
@@ -263,8 +265,7 @@ func runVerifyBundle(ctx context.Context, args []string, stdout, stderr io.Write
 
 	verified, payload, err := signing.FromSigstoreBundle(ctx, bundleJSON, trust)
 	if err != nil {
-		fmt.Fprintln(stderr, "error: verify bundle:", err)
-		return 1
+		return signatureFailure(stdout, stderr, fmt.Errorf("verify bundle: %w", err))
 	}
 
 	result, err := gitbind.Compute(ctx, *repo)
@@ -296,4 +297,17 @@ func runVerifyBundle(ctx context.Context, args []string, stdout, stderr io.Write
 		return 1
 	}
 	return 0
+}
+
+// signatureFailure reports a bundle/trust-root verification failure as a
+// structured verifier result (stable code signature_invalid) on stdout, with
+// the human-readable cause on stderr. Machine consumers of `verify bundle`
+// previously could not distinguish signature failures from I/O errors.
+func signatureFailure(stdout, stderr io.Writer, err error) int {
+	fmt.Fprintln(stderr, "error:", err)
+	res := verify.Result{Valid: false, FailureCodes: []string{"signature_invalid"}}
+	if writeErr := writeJSON(stdout, res); writeErr != nil {
+		fmt.Fprintln(stderr, "error:", writeErr)
+	}
+	return 1
 }

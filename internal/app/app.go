@@ -249,6 +249,8 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "      v1 adds: --capture-method wrapper|ci-step|manual [--capture-harness NAME]")
 	fmt.Fprintln(w, "               [--agent-config PATH] [--model-provider P --model-id M]")
 	fmt.Fprintln(w, "  agentattest verify predicate --statement PATH --context PATH")
-	fmt.Fprintln(w, "  agentattest verify bundle --bundle PATH --trust-root ROOT.pem [--repo DIR] [--required-level ...]")
+	fmt.Fprintln(w, "  agentattest verify bundle --bundle PATH [--trust-root ROOT.pem] [--repo DIR] [--required-level ...]")
+	fmt.Fprintln(w, "      [--require-inclusion] [--rekor-root HEX]")
+	fmt.Fprintln(w, "      (--trust-root omitted: fetch the Sigstore community root via TUF)")
 	fmt.Fprintln(w, "  agentattest summary --statement PATH --context PATH")
 }
