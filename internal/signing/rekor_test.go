@@ -6,11 +6,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"testing"
+
+	"github.com/transparency-dev/merkle/rfc6962"
 )
 
 func TestVerifyInclusionValid(t *testing.T) {
 	leaf := []byte("canonical-rekor-entry")
-	hasher := rfc6962Hasher{}
+	hasher := rfc6962.DefaultHasher
 	root := hasher.HashLeaf(leaf) // a size-1 tree's root is the leaf hash
 	if err := VerifyInclusion(RekorInclusion{LogIndex: 0, TreeSize: 1, RootHash: root, LeafData: leaf}); err != nil {
 		t.Fatalf("valid inclusion proof rejected: %v", err)
@@ -19,7 +21,7 @@ func TestVerifyInclusionValid(t *testing.T) {
 
 func TestVerifyInclusionRejectsTamperedLeaf(t *testing.T) {
 	leaf := []byte("canonical-rekor-entry")
-	hasher := rfc6962Hasher{}
+	hasher := rfc6962.DefaultHasher
 	root := hasher.HashLeaf(leaf)
 	if err := VerifyInclusion(RekorInclusion{LogIndex: 0, TreeSize: 1, RootHash: root, LeafData: []byte("different")}); err == nil {
 		t.Fatal("expected inclusion proof to reject a mismatched leaf")
@@ -34,7 +36,7 @@ func bundleWithInclusion(t *testing.T, leafData []byte) (bundleJSON, rootHash []
 	if err := json.Unmarshal(base, &obj); err != nil {
 		t.Fatal(err)
 	}
-	rootHash = (rfc6962Hasher{}).HashLeaf(leafData)
+	rootHash = (rfc6962.DefaultHasher).HashLeaf(leafData)
 	material := obj["verificationMaterial"].(map[string]any)
 	material["tlogEntries"] = []map[string]any{
 		{

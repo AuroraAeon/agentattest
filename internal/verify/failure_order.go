@@ -21,7 +21,6 @@ var failurePriority = map[string]int{
 	"missing_evidence":                 160,
 	"stale_attestation":                170,
 	"policy_eval_error":                180,
-	"cache_untrusted":                  190,
 }
 
 // OrderFailureCodes returns deterministic user-visible failure-code order.

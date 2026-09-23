@@ -1,0 +1,7 @@
+{
+  "valid": false,
+  "level": "evidence-grade",
+  "failureCodes": [
+    "repo_url_mismatch"
+  ]
+}

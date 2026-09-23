@@ -1,0 +1,12 @@
+{
+  "repoUrl": "https://github.com/example/agentattest",
+  "baseCommit": "ffffffffffffffffffffffffffffffffffffffff",
+  "requiredLevel": "evidence-grade",
+  "subjects": [
+    {
+      "name": "patch.diff",
+      "algorithm": "sha256",
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ]
+}

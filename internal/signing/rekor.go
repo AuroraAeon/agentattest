@@ -2,13 +2,13 @@ package signing
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/transparency-dev/merkle/proof"
+	"github.com/transparency-dev/merkle/rfc6962"
 )
 
 // RekorInclusion is a Rekor transparency-log inclusion proof for one entry.
@@ -20,36 +20,10 @@ type RekorInclusion struct {
 	LeafData []byte // the canonicalized Rekor entry, hashed as an RFC 6962 leaf
 }
 
-// rfc6962Hasher implements merkle.LogHasher using the RFC 6962 SHA-256
-// construction: leaves are H(0x00 || data), interior nodes H(0x01 || l || r).
-type rfc6962Hasher struct{}
-
-func (rfc6962Hasher) EmptyRoot() []byte {
-	sum := sha256.Sum256(nil)
-	return sum[:]
-}
-
-func (rfc6962Hasher) HashLeaf(leaf []byte) []byte {
-	h := sha256.New()
-	h.Write([]byte{0x00})
-	h.Write(leaf)
-	return h.Sum(nil)
-}
-
-func (rfc6962Hasher) HashChildren(l, r []byte) []byte {
-	h := sha256.New()
-	h.Write([]byte{0x01})
-	h.Write(l)
-	h.Write(r)
-	return h.Sum(nil)
-}
-
-func (rfc6962Hasher) Size() int { return sha256.Size }
-
 // VerifyInclusion verifies that LeafData is committed to by RootHash at LogIndex
 // within a Merkle tree of TreeSize, per RFC 6962 (transparency-dev/merkle).
 func VerifyInclusion(inc RekorInclusion) error {
-	hasher := rfc6962Hasher{}
+	hasher := rfc6962.DefaultHasher
 	leafHash := hasher.HashLeaf(inc.LeafData)
 	return proof.VerifyInclusion(hasher, inc.LogIndex, inc.TreeSize, leafHash, inc.Proof, inc.RootHash)
 }

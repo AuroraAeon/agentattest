@@ -1,0 +1,7 @@
+{
+  "valid": false,
+  "level": "evidence-grade",
+  "failureCodes": [
+    "base_commit_mismatch"
+  ]
+}

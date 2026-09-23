@@ -128,6 +128,8 @@ Expected result: invalid with `level_escalation`.
 | `invalid-material-data-uri` | `schema_invalid` |
 | `invalid-reviewer-ref-pii` | `schema_invalid` |
 | `invalid-timestamp-order` | `schema_invalid` |
+| `invalid-repo-url-mismatch` | `repo_url_mismatch` |
+| `invalid-base-commit-mismatch` | `base_commit_mismatch` |
 
 ## v1 Fixtures
 
