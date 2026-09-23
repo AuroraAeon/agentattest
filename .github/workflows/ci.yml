@@ -88,6 +88,24 @@ jobs:
           fi
           grep -q '"level_below_required"' invalid.json
 
+  tuf-integration:
+    # Opt-in live check of the Sigstore TUF trust-root path (network dependency
+    # on tuf-repo-cdn.sigstore.dev). Hermetic tests cover the logic; this job
+    # catches upstream target renames. Allowed to fail so an upstream CDN
+    # outage never blocks PRs.
+    name: Sigstore TUF live check (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: live TUF refresh + Fulcio root fetch
+        run: go test ./internal/signing/ -run TestFulcioRootsViaTUFIntegration -count=1 -v
+        env:
+          AGENTATTEST_TUF_INTEGRATION: "1"
+
   test:
     # Cross-platform matrix: task 3 acceptance requires identical git/patch/
     # tree digests on Windows, macOS, and Linux.

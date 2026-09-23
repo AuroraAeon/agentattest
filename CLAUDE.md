@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Status
 
-This is `agentattest`: a thin interoperability layer for AI coding-agent provenance, with a working Go module (`go 1.25`) plus JSON Schema, CUE, a Rego policy, and golden fixtures. The **v0** contract and the 5-phase Go verifier are shipped and tested (41 golden fixtures pass). The **v1** contract (`https://agentattest.dev/predicate/v1`), which binds the 2026 frontier-harness plane, shipped in the September-2026 overhaul — see [`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md) and the current [`TASKS.md`](TASKS.md). `internal/signing` (DSSE envelope + X.509 identity extraction) is shipped; still ahead: full Fulcio/Rekor root + bundle verification, the GitHub Action, and PR summary output.
+This is `agentattest`: a thin interoperability layer for AI coding-agent provenance, with a working Go module (`go 1.25`) plus JSON Schema, CUE, a Rego policy, and golden fixtures. The **v0** contract and the 5-phase Go verifier are shipped and tested (46 golden fixtures pass: 34 v0 + 12 v1). The **v1** contract (`https://agentattest.dev/predicate/v1`), which binds the 2026 frontier-harness plane, shipped in the September-2026 overhaul — see [`docs/FRONTIER_HARNESS_2026.md`](docs/FRONTIER_HARNESS_2026.md) and the current [`TASKS.md`](TASKS.md). `internal/signing` is shipped end to end: DSSE envelope, X.509 identity extraction, Fulcio trust-root chain verification, Sigstore/`gh attestation` bundle ingestion, RFC 6962 Rekor inclusion-proof binding, and TUF-sourced Sigstore trust roots. The GitHub Action, `context`/`summary`/`verify bundle` CLI, capture SDK, registry, CI, and the `v0.1.0` release pipeline are shipped; the security posture is evidenced in [`docs/SECURITY_REVIEW.md`](docs/SECURITY_REVIEW.md).
 
 When adding code, the planned stack is: Go for CLI/verifier, JSON Schema + CUE for the predicate, Rego (and optionally CUE) for policy, SQLite for cache, GitHub Action wrapper. Do not introduce other languages or runtimes without revisiting `ARCHITECTURE.md`.
 
@@ -22,7 +22,7 @@ When adding code, the planned stack is: Go for CLI/verifier, JSON Schema + CUE f
 
 ## Architecture (Big Picture)
 
-`agentattest` produces an **in-toto Statement v1** whose custom predicate type is exactly `https://agentattest.dev/predicate/v0`. The project owns **only** the predicate, deterministic subject-binding rules, verifier inputs/failure codes, default policy, and CLI/Action ergonomics. Everything else (signing, transparency, traces, SBOM, VEX) is delegated to existing standards.
+`agentattest` produces an **in-toto Statement v1** whose custom predicate type is `https://agentattest.dev/predicate/v0` or the `v1` superset. The project owns **only** the predicate, deterministic subject-binding rules, verifier inputs/failure codes, default policy, and CLI/Action ergonomics. Everything else (signing, transparency, traces, SBOM, VEX) is delegated to existing standards.
 
 The eight planned layers (per `ARCHITECTURE.md`) are: **capture → binding → predicate → attestation → verification → policy → cache → integration**. Dependencies flow inward (orchestration → domain) then outward through adapters. Critical forbidden directions:
 
@@ -62,7 +62,7 @@ The predicate is described in three places that must agree:
 1. `schemas/agent-provenance-v0.schema.json` — structural validation, `additionalProperties: false`, basic types.
 2. `schemas/agent-provenance-v0.cue` — stricter constraints (regexes, level-conditional shape, raw-evidence visibility coupling).
 3. `policies/default.rego` — Phase 04 runtime/context checks (repo URL, base commit, exact subject set, required level, verified identity context, level escalation, public-log privacy, freshness, approval digest binding).
-4. `schemas/agent-provenance-v1.schema.json` + `schemas/agent-provenance-v1.cue` — the v1 superset (`agentConfig` / `mcpServers` / `tools` / `delegation` / `capture` / `platform-agent`), kept in lockstep with each other; `policies/default.rego` adds the v1 agentConfig / MCP / delegation gates when the matching verifier context is present.
+4. `schemas/agent-provenance-v1.schema.json` + `schemas/agent-provenance-v1.cue` — the v1 superset (`agentConfig` / `mcpServers` / `tools` / `delegation` / `capture` / `platform-agent`), kept in lockstep with each other; `policies/default.rego` adds the v1 agentConfig / MCP / delegation gates, which fail closed at policy-grade and above when a v1 predicate declares `mcpServers` or a `delegationChain` without the matching verified allowlist.
 
 Plus `tests/golden/` fixtures (`valid-minimal`, `valid-github-ci`, `invalid-replay`, `invalid-subject-mismatch`, `invalid-raw-prompt-leakage`, `invalid-level-escalation`) must round-trip through all three. Adding a required field without updating fixtures is expected to fail CI.
 

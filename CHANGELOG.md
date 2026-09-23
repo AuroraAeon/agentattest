@@ -27,6 +27,16 @@ GitHub Action, the harness capture SDK, and the release pipeline.
 - **CI** (`.github/workflows/ci.yml`) — fmt/vet/build, contract gates (schema/CUE/Rego/golden via `go test`), and a `-race` matrix on Ubuntu/macOS/Windows.
 - **Release pipeline** — GoReleaser config, tag-triggered release workflow, `agentattest version` with build-time ldflags injection.
 
+### Security
+
+- Transparency-log evidence restricted to an allowlist of metadata-shaped types (`local-log-root`, `builder-record`, `agent-config`, `mcp-server`); content-shaped types (`trace`, `tool-summary`, `test-result`, `approval`, raw refs) are denied.
+- v1 gates fail closed: declaring `mcpServers` or a `delegationChain` at policy-grade or above without the matching verified allowlist fails with `missing_evidence`; every delegation step is validated; high-assurance requires bound trace evidence and rejects `capture.method: manual`.
+- `mcpServers[].name` / `tools[].name` constrained to non-PII patterns in JSON Schema + CUE.
+- Hand-rolled RFC 6962 Merkle hasher replaced with `rfc6962.DefaultHasher`; the `internal/signing`-only import boundary is machine-enforced by a test.
+- `verify bundle` emits a structured `signature_invalid` result on failure; the never-emitted `cache_untrusted` code was removed from the public contract.
+- Trust roots: explicit `--trust-root` or Sigstore TUF (pinned embedded root metadata, hash-verified targets); all failures fail closed.
+- See `docs/SECURITY_REVIEW.md` for the per-claim evidence.
+
 ### Security properties
 
 - No custom cryptography; signing only in `internal/signing`.
