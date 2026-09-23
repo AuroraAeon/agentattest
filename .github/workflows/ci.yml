@@ -51,6 +51,43 @@ jobs:
       - name: v0/v1 predicate version routing
         run: go test ./internal/verify/ -run 'TestPhase01VersionRouting|TestContractForVersion|TestStatementNewV1' -count=1
 
+  smoke:
+    # End-to-end exercise of the CLI entrypoint itself (not just packages):
+    # build, init, digest, predicate create, context, verify, summary — plus a
+    # golden invalid fixture that must fail closed with its stable code.
+    name: CLI end-to-end smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: build CLI
+        run: go build -o agentattest ./cmd/agentattest
+      - name: version
+        run: ./agentattest version
+      - name: init + digest
+        run: |
+          ./agentattest init --dir .
+          ./agentattest digest --repo . > digest.json
+          grep -q '"digest"' digest.json
+      - name: predicate create -> context -> verify (v1, evidence-grade)
+        run: |
+          ./agentattest predicate create --repo . --version v1 --agent-config AGENTS.md --out stmt.json
+          ./agentattest context --repo . --required-level evidence-grade > ctx.json
+          ./agentattest verify predicate --statement stmt.json --context ctx.json > result.json
+          grep -q '"valid": true' result.json
+          ./agentattest summary --statement stmt.json --context ctx.json | grep -q "Agent Provenance: valid"
+      - name: invalid fixture fails closed with its stable code
+        run: |
+          if ./agentattest verify predicate \
+              --statement tests/golden/invalid-level-downgrade/statement.json \
+              --context tests/golden/invalid-level-downgrade/context.json > invalid.json; then
+            echo "::error::verifier accepted an invalid fixture"
+            exit 1
+          fi
+          grep -q '"level_below_required"' invalid.json
+
   test:
     # Cross-platform matrix: task 3 acceptance requires identical git/patch/
     # tree digests on Windows, macOS, and Linux.
